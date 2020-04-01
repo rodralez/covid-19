@@ -1,15 +1,8 @@
-function param = my_fit_SEIQRDP(Confirmed, Recovered, Deaths, Npop, time, guess)
+function param = my_fit_SEIQRDP(Confirmed, Recovered, Deaths, Npop, E0, I0, time, guess)
 
 
 guess_v = [guess.alpha,  guess.beta, 1/guess.LT, 1/guess.QT, guess.lambda,...
     guess.kappa];
-
-% Initial conditions
-E0 = Confirmed(1); % Initial number of exposed cases. Unknown but unlikely to be zero.
-I0 = Confirmed(1); % Initial number of infectious cases. Unknown but unlikely to be zero.
-% Q0 = Confirmed(1);
-% R0 = Recovered(1);
-% D0 = Deaths(1);
 
 % disp(tableRecovered(indR,1:2));
 % 
@@ -29,6 +22,10 @@ I0 = Confirmed(1); % Initial number of infectious cases. Unknown but unlikely to
 % Parameter estimation with the lsqcurvefit function
 [alpha1,beta1,gamma1,delta1,lambda1,kappa1] = ...
     fit_SEIQRDP(Confirmed-Recovered-Deaths,Recovered,Deaths,Npop,E0,I0,time,guess_v);
+
+%     fit_SEIQRDP(Confirmed,Recovered,Deaths,Npop,E0,I0,time,guess_v);
+
+%     fit_SEIQRDP(Confirmed-Recovered-Deaths,Recovered,Deaths,Npop,E0,I0,time,guess_v);
 
 param.alpha = alpha1;
 param.beta = beta1;

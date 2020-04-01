@@ -46,8 +46,9 @@ p.addOptional('tolX',1e-3);  %  option for optimset
 p.addOptional('tolFun',1e-3);  %  option for optimset
 % p.addOptional('Display','iter'); % Display option for optimset
 p.addOptional('Display','off'); % Display option for optimset
-p.addOptional('dt',0.1); % time step for the fitting
+p.addOptional('dt', 0.1); % time step for the fitting
 p.parse(varargin{:});
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 tolX = p.Results.tolX ;
 tolFun = p.Results.tolFun ;
@@ -132,6 +133,7 @@ Kappa1 = abs(Coeff(7:8));
         
          lambda = lambda0(1)*(1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
          kappa = kappa0(1)*exp(-kappa0(2).*t); % I use these functions for illustrative purpose only    
+         
         % ODE reYution
         for ii=1:N-1
             A = getA(alpha,gamma,delta,lambda(ii),kappa(ii));

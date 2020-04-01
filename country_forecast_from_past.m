@@ -13,9 +13,9 @@
 % been quarantined or not. In a previous version of the submision (version <1.5) 
 % , the infectious cases were erroneously used instead of the quarantined cases. 
 
-clear
-close all
-clc
+% clear
+% close all
+% clc
 
 %% Cases
 
@@ -38,25 +38,28 @@ clc
 
 %% COUNTRY
 
-% Location = 'Hubei';
+% Country = 'Hubei';
 % Npop = 14e6; % population
 
-% Location = 'Germany';
+% Country = 'Germany';
 % Npop = 82.79e6; % population
 % guess.LT = 5.1; % latent time in days
 % guess.QT = 20; % quarantine time in days
 
-% Location = 'Italy';
+% Country = 'Italy';
+% City = '';
 % Npop = 60.48e6; % population
 % guess.LT = 4; % latent time in days
 % guess.QT = 6; % quarantine time in days
 
-% Location = 'Spain';
-% Npop = 46.66e6; % population
-% guess.LT = 2; % latent time in days
-% guess.QT = 12; % quarantine time in days
+Country = 'Spain';
+City = '';
+Npop = 46.66e6; % population
+guess.LT = 5; % latent time in days
+guess.QT = 10; % quarantine time in days
 
-% Location = 'France';
+% Country = 'France';
+% City = '';
 % Npop= 66.99e6; % population
 % guess.LT = 1; % latent time in days
 % guess.QT = 5; % quarantine time in days
@@ -64,8 +67,8 @@ clc
 % Country = 'Argentina';
 % City = '';
 % Npop= 45e6; % population
-% guess.LT = 1; % latent time in days
-% guess.QT = 2; % quarantine time in days
+% guess.LT = 5; % latent time in days
+% guess.QT = 23; % quarantine time in days
 
 % Country = 'China';
 % City = 'Hubei';
@@ -87,14 +90,14 @@ source = 'offline' ;
 %% FIND COUNTRY
 
 try
-    indR = find( contains(tableRecovered.CountryRegion, Country) == 1 );
-    indR = indR( tableRecovered.ProvinceState(indR) == City);
+    indR = find( contains( tableRecovered.CountryRegion, Country) == 1 );
+    indR = indR(contains( tableRecovered.ProvinceState(indR), City ));
      
-    indC = find( contains(tableConfirmed.CountryRegion,Country) == 1 );
-    indC = indC( tableConfirmed.ProvinceState(indC) == City);
+    indC = find( contains(tableConfirmed.CountryRegion, Country) == 1 );
+    indC = indC(contains( tableConfirmed.ProvinceState(indC), City ));
     
-    indD = find(contains(tableDeaths.CountryRegion,Country)==1);
-    indD = indD(tableDeaths.ProvinceState(indD) == City);
+    indD = find(contains(tableDeaths.CountryRegion, Country)==1);
+    indD = indD(contains( tableDeaths.ProvinceState(indD), City ));
     
 catch exception
     searchLoc = strfind(tableRecovered.ProvinceState,Country);
@@ -133,23 +136,27 @@ Confirmed(Confirmed<=minNum)=[];
 
 DAYS = length(time) - FORECAST; 
 
-%% FIT WITH DAYS
+%% FITTING
+
+% Initial conditions
+E0 = Confirmed(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
+I0 = Confirmed(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
 % Definition of the first estimates for the parameters
-guess.alpha = 1; % protection rate
-guess.beta = 1.0; % Infection rate
+guess.alpha = 1.0; % protection rate
+guess.beta  = 1.0; % Infection rate
 
 % guess.LT = 5; % latent time in days
 % guess.QT = 21; % quarantine time in days
 
-guess.lambda = [0.1, 0.05]; % recovery rate
+guess.lambda = [0.2, 0.05]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
 
 Confirmed_short = Confirmed(1:DAYS);
 Recovered_short = Recovered(1:DAYS);
 Deaths_short    = Deaths(1:DAYS);
 
-param_short = my_fit_SEIQRDP(Confirmed_short, Recovered_short, Deaths_short, Npop, time(1:DAYS), guess);
+param_short = my_fit_SEIQRDP(Confirmed_short, Recovered_short, Deaths_short, Npop, E0, I0, time(1:DAYS), guess);
 
 %% PRINT
 
@@ -208,8 +215,8 @@ line_width = 3;
 Infected = Confirmed-Recovered-Deaths;
 infected_peak = max (Infected);
 
-% figure('visible','off');
-figure
+figure('visible','off');
+% figure
 
 time_fit  = time_sim (time_sim < time(DAYS));
 time_fore = time_sim (time_sim > time(DAYS));
@@ -270,7 +277,7 @@ infec_repo_srt = sprintf('and in fact there were %d on this day.',  Infected (DA
 
 infec_fore = Q1(end);
 infec_repo = Infected (DAYS+FORECAST);
-infec_err = abs ( (infec_fore - infec_repo) / infec_repo * 100 );
+infec_err = abs ( (infec_fore - infec_repo) / infec_repo * 100 )
 
 infec_err_srt = sprintf('Error is %.2f%%.',  infec_err );
 
@@ -292,6 +299,6 @@ set(ll,'FontSize', font_legend);
 file_str = sprintf('%s_covid-19_forecast_from_past.png', Country );
 
 set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
-saveas(gcf,file_str)
+% saveas(gcf,file_str)
 
 

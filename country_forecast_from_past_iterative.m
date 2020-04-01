@@ -7,7 +7,6 @@ L = 15;
 Q = 25;
 M = L * Q;
 
-lt = 1:L;
 qt = 1:Q;
 
 opti_m = zeros(M, 3);
