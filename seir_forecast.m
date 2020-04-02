@@ -75,22 +75,24 @@ clc
 % guess.QT = 6; % quara
 
 % Country = 'France';
-% Province = " ";
+% Province = '';
 % Npop= 66.99e6; % population
 % guess.LT = 1; % latent time in days
 % guess.QT = 5; % quarantine time in days
 
-Country = 'Argentina';
-Province = '';
-Npop= 45e6; % population
-guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
-guess.QT = 23; % quarantine time in days, infectious period, delta^(-1)
+% Country = 'Argentina';
+% Province = '';
+% Npop= 45e6; % population
+% guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
+% guess.QT = 23; % quarantine time in days, infectious period, delta^(-1)
 
-% Country = 'China';
-% Province = 'Hubei';
-% Npop = 58.5e6; % population
-% guess.LT = 1; % latent time in days
-% guess.QT = 2; % quarantine time in days
+Country = 'China';
+% Province = '';
+% Npop = 1386e6; % population
+Province = 'Hubei';
+Npop = 59e6; % population
+guess.LT = 1; % latent time in days
+guess.QT = 2; % quarantine time in days
 
 %% SOURCE
 
@@ -102,21 +104,21 @@ source = 'offline' ;
 % [tableConfirmed,tableDeaths,time] = get_covid_global_hopkins( source );
 
 
-%% FORECAST SCENARIO
+%% DAYS TO FORECAST 
 
 FORECAST = 7;
 
 %% FIND COUNTRY
 
 try
-    indR = find( contains(tableRecovered.CountryRegion, Country) == 1 );
-%     indR = find(contains( tableRecovered.ProvinceState(indR), Province)==1);
+    indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
+    indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
      
-    indC = find( contains(tableConfirmed.CountryRegion, Country) == 1 );
-%     indC = find(contains( tableConfirmed.ProvinceState(indC), Province)==1);
-    
+    indC = find( contains(  tableConfirmed.CountryRegion, Country) == 1 );
+    indC = indC( ismissing( tableConfirmed.ProvinceState(indC), Province) );
+   
     indD = find(contains(tableDeaths.CountryRegion, Country)==1);
-%     indD = find(contains(tableDeaths.CountryRegion(indD), Province)==1);
+    indD = indD( ismissing( tableConfirmed.ProvinceState(indD), Province) );
     
 catch exception
     
@@ -190,7 +192,7 @@ time_sim  = datetime( time(1) ):dt:datetime( time(end) + FORECAST );
 N = numel(time_sim);
 t1 = (0:N-1).*dt;
 
-param_fit.delta = 1 / 8; % Argentina 
+% param_fit.delta = 1 / 8; % Argentina 
 
 [S1,E1,I1,Q1,R1,D1,P1] = my_SEIQRDP(param_fit, Npop, E0, I0, Q0, R0, D0, t1);
 
