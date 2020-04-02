@@ -44,11 +44,11 @@ clc
 % guess.LT = 5.1; % latent time in days
 % guess.QT = 20; % quarantine time in days
 
-Country = 'Brazil';
-Province = '';
-Npop = 209.3e6; % population
-guess.LT = 4; % latent time in days
-guess.QT = 6; % quarantine time in days
+% Country = 'Brazil';
+% Province = '';
+% Npop = 209.3e6; % population
+% guess.LT = 4; % latent time in days
+% guess.QT = 6; % quarantine time in days
 
 % Country = 'Chile';
 % Province = '';
@@ -80,11 +80,11 @@ guess.QT = 6; % quarantine time in days
 % guess.LT = 1; % latent time in days
 % guess.QT = 5; % quarantine time in days
 
-% Country = 'Argentina';
-% Province = '';
-% Npop= 45e6; % population
-% guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
-% guess.QT = 23; % quarantine time in days, infectious period, delta^(-1)
+Country = 'Argentina';
+Province = '';
+Npop= 45e6; % population
+guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
+guess.QT = 23; % quarantine time in days, infectious period, delta^(-1)
 
 % Country = 'China';
 % Province = 'Hubei';
@@ -190,7 +190,7 @@ time_sim  = datetime( time(1) ):dt:datetime( time(end) + FORECAST );
 N = numel(time_sim);
 t1 = (0:N-1).*dt;
 
-% param_fit.delta = 1 / 8; % Argentina 
+param_fit.delta = 1 / 8; % Argentina 
 
 [S1,E1,I1,Q1,R1,D1,P1] = my_SEIQRDP(param_fit, Npop, E0, I0, Q0, R0, D0, t1);
 
@@ -341,7 +341,7 @@ ii = [i_fit i_fore]';
 rr = [r_fit r_fore]';
 dd = [d_fit d_fore]';
 
-file_str = sprintf('./csv/%s_covid-19_fit_forecast_%s.csv', Country, datetime() );
+file_str = sprintf('./csv/%s_covid-19_fit_forecast_%s.csv', Country, date() );
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths', 'Infected') ; % Print the time string
@@ -358,7 +358,7 @@ end
 
 fclose(fid) ;
 
-file_str = sprintf('./csv/%s_covid-19_reported_%s.csv', Country, datetime() );
+file_str = sprintf('./csv/%s_covid-19_reported_%s.csv', Country, date() );
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths') ; % Print the time string
