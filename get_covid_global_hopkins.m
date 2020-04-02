@@ -1,14 +1,16 @@
-function [tableConfirmed,tableDeaths,tableRecovered,time] = get_data_covid_hopkins( source )
-% The function [tableConfirmed,tableDeaths,tableRecovered,time] = getDataCOVID
-% collect the updated data from the COVID-19 epidemy from the
-% John Hopkins university [1]
-% 
+function [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins( source, directory )
+% get_covid_global_hopkins() gets global data from the COVID-19 epidemy from the
+% John Hopkins university [1]. Source can be online or offline.
+% Based on E. Cheynet's work [2].
+%
 % References:
 % [1] https://github.com/CSSEGISandData/COVID-19
-% 
-% Author: E. Cheynet - Last modified - 20-03-2020
-% 
-% see also fit_SEIQRDP.m SEIQRDP.m
+% [2] https://www.mathworks.com/matlabcentral/fileexchange/74545-generalized-seir-epidemic-model-fitting-and-computation
+%
+% Version: 001
+% Date:    2020/04/01
+% Author:  Rodrigo Gonzalez <rodralez@frm.utn.edu.ar>
+% URL:     https://github.com/rodralez/navego 
 
 %% Input handling
 
@@ -26,7 +28,7 @@ address = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse
 
 for i=1:numel(status)
     
-    filename = ['time_series_covid19_',status{i},'_global.csv'];
+    filename = [directory,'time_series_covid19_',status{i},'_global.csv'];
     
     if ( strcmp (source, 'online'))
         

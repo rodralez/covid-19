@@ -1,11 +1,11 @@
 function [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = fit_SEIQRDP(Q,R,D,Npop,E0,I0,time,guess,varargin)
-% [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = 
-% fit_SEIQRDP(Q,R,D,Npop,E0,I0,time,guess,varargin) estimates the 
+% [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] =
+% fit_SEIQRDP(Q,R,D,Npop,E0,I0,time,guess,varargin) estimates the
 % parameters used in the SEIQRDP function, used to model the time-evolution
 % of an epidemic outbreak.
-% 
+%
 % Input
-% 
+%
 %   I: vector [1xN] of the target time-histories of the infectious cases
 %   R: vector [1xN] of the target time-histories of the recovered cases
 %   D: vector [1xN] of the target time-histories of the dead cases
@@ -19,9 +19,9 @@ function [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = fit_SEIQRDP(Q,R
 %       -tolX: tolerance  option for optimset
 %       -Display: Display option for optimset
 %       -dt: time step for the fitting function
-% 
+%
 % Output
-% 
+%
 %   alpha: scalar [1x1]: fitted protection rate
 %   beta: scalar [1x1]: fitted  infection rate
 %   gamma: scalar [1x1]: fitted  Inverse of the average latent time
@@ -32,9 +32,9 @@ function [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = fit_SEIQRDP(Q,R
 %       - residual
 %       - Jcobian
 %       - The function @SEIQRDP_for_fitting
-% 
+%
 % Author: E. Cheynet - UiB - last modified 24-03-2020
-% 
+%
 % see also SEIQRDP.m
 
 %%
@@ -71,7 +71,7 @@ if size(time,1)>size(time,2) && size(time,2)==1,    time = time';end
 if size(time,1)>1 && size(time,2)>1,  error('Time should be a vector');end
 
 fs = 1./dt;
-tTarget = round(datenum(time-time(1))*fs)/fs; % Number of days with one decimal 
+tTarget = round(datenum(time-time(1))*fs)/fs; % Number of days with one decimal
 
 t = tTarget(1):dt:tTarget(end); % oversample to ensure that the algorithm converges
 
@@ -107,14 +107,14 @@ Kappa1 = abs(Coeff(7:8));
 %% nested functions
 
     function [output] = SEIQRDP_for_fitting(para,t0)
-
+        
         alpha = abs(para(1));
         beta = abs(para(2));
         gamma = abs(para(3));
         delta = abs(para(4));
         lambda0 = abs(para(5:6));
         kappa0 = abs(para(7:8));
-
+        
         
         %% Initial conditions
         N = numel(t);
@@ -131,9 +131,9 @@ Kappa1 = abs(Coeff(7:8));
         %%
         modelFun = @(Y,A,F) A*Y + F;
         
-         lambda = lambda0(1)*(1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
-         kappa = kappa0(1)*exp(-kappa0(2).*t); % I use these functions for illustrative purpose only    
-         
+        lambda = lambda0(1)*(1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
+        kappa = kappa0(1)*exp(-kappa0(2).*t); % I use these functions for illustrative purpose only
+        
         % ODE reYution
         for ii=1:N-1
             A = getA(alpha,gamma,delta,lambda(ii),kappa(ii));

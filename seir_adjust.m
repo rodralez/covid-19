@@ -1,21 +1,18 @@
-%% Example: COVID-2019 data for Hubei, China (22-Jan-2020 - )
-% I am taking some data, collected into DATA.mat from John Hopkins university 
-% [1]
-% 
-% [1] <https://github.com/CSSEGISandData/COVID-19 https://github.com/CSSEGISandData/COVID-19>
-% 
-% 
-% 
-% *Important notice:*
-% 
-% The fitting is here more challenging than in Example 1 because the term 
-% "Confirmed patient" used in the database does not precise whether they have 
-% been quarantined or not. In a previous version of the submision (version <1.5) 
-% , the infectious cases were erroneously used instead of the quarantined cases. 
+% seir_adjust.m tries to find the best parameters of the model
+% forecasting the model in the past and comparing with real values.
+% Based on E. Cheynet's work [1].
+%
+% References:
+% [1] https://www.mathworks.com/matlabcentral/fileexchange/74545-generalized-seir-epidemic-model-fitting-and-computation
+%
+% Version: 001
+% Date:    2020/04/02
+% Author:  Rodrigo Gonzalez <rodralez@frm.utn.edu.ar>
+% URL:     https://github.com/rodralez/covid-19 
 
-% clear
-% close all
-% clc
+clear
+close all
+clc
 
 %% Cases
 

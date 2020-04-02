@@ -1,16 +1,27 @@
 function [S,E,I,Q,R,D,P] = my_SEIQRDP(param,Npop,E0,I0,Q0,R0,D0,t)
-% [S,E,I,Q,R,D,P] = SEIQRDP(alpha,beta,gamma,delta,lambda,kappa,Npop,E0,I0,R0,D0,t)
+% [S,E,I,Q,R,D,P] = SEIQRDP(param,Npop,E0,I0,R0,D0,t)
 % simulate the time-histories of an epidemic outbreak using a generalized
 % SEIR model.
+% Based on E. Cheynet's work [1].
+%
+% see also fit_SEIQRDP.m
+%
+% References:
+% [1] https://www.mathworks.com/matlabcentral/fileexchange/74545-generalized-seir-epidemic-model-fitting-and-computation
+%
+% Version: 001
+% Date:    2020/04/02
+% Author:  Rodrigo Gonzalez <rodralez@frm.utn.edu.ar>
+% URL:     https://github.com/rodralez/covid-19 
 %
 % Input
 %
-%   alpha: scalar [1x1]: fitted protection rate
-%   beta: scalar [1x1]: fitted  infection rate
-%   gamma: scalar [1x1]: fitted  Inverse of the average latent time
-%   delta: scalar [1x1]: fitted  inverse of the average quarantine time
-%   lambda: scalar [1x1]: fitted  cure rate
-%   kappa: scalar [1x1]: fitted  mortality rate
+%   param.alpha: scalar [1x1]: fitted protection rate
+%   param.beta: scalar [1x1]: fitted  infection rate
+%   param.gamma: scalar [1x1]: fitted  Inverse of the average latent time
+%   param.delta: scalar [1x1]: fitted  inverse of the average quarantine time
+%   param.lambda: scalar [1x1]: fitted  cure rate
+%   param.kappa: scalar [1x1]: fitted  mortality rate
 %   Npop: scalar: Total population of the sample
 %   E0: scalar [1x1]: Initial number of exposed cases
 %   I0: scalar [1x1]: Initial number of infectious cases
@@ -27,12 +38,9 @@ function [S,E,I,Q,R,D,P] = my_SEIQRDP(param,Npop,E0,I0,Q0,R0,D0,t)
 %   R: vector [1xN] of the target time-histories of the recovered cases
 %   D: vector [1xN] of the target time-histories of the dead cases
 %   P: vector [1xN] of the target time-histories of the insusceptible cases
-%
-% Author: E. Cheynet - UiB - last modified 16-03-2020
-%
-% see also fit_SEIQRDP.m
 
 %%
+
 alpha = param.alpha;
 beta = param.beta;
 gamma = param.gamma;
