@@ -39,98 +39,54 @@ clc
 
 %% COUNTRY
 
-% Country = 'Germany';
-% Province = '';
-% Npop = 82.79e6; % population
-% guess.LT = 5.1; % latent time in days
-% guess.QT = 20; % quarantine time in days
-
-% Country = 'Brazil';
-% Province = '';
-% Npop = 209.3e6; % population
-% guess.LT = 4; % latent time in days
-% guess.QT = 6; % quarantine time in days
-
-% Country = 'Chile';
-% Province = '';
-% Npop = 18.5e6; % population
-% guess.LT = 4; % latent time in days
-% guess.QT = 6; % quarantine time in days
-
-% Country = 'Turkey';
-% Province = '';
-% Npop = 80.81e6; % population
-% guess.LT = 4; % latent time in days
-% guess.QT = 6; % quarantine time in days
-
-% Country = 'Spain';
-% Province = '';
-% Npop = 46.66e6; % population
-% guess.LT = 2; % latent time in days
-% guess.QT = 5; % quarantine time in days
-
-% Country = 'Italy';
-% Province = '';
-% Npop = 60.48e6; % population
-% guess.LT = 4; % latent time in days
-% guess.QT = 6; % quara
-
-% Country = 'France';
-% Province = '';
-% Npop= 66.99e6; % population
-% guess.LT = 1; % latent time in days
-% guess.QT = 5; % quarantine time in days
-
-Country = 'Argentina';
 Province = '';
-Npop= 45e6; % population
-guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
-guess.QT = 4; % quarantine time in days, infectious period, delta^(-1)
-
+% Country = 'Germany';
+% Country = 'Brazil';
+% Country = 'Ecuador';
+% Country = 'Chile';
+% Country = 'Turkey';
+% Country = 'Spain';
+% Country = 'Italy';
+% Country = 'France';
+Country = 'Argentina';
 % Country = 'Singapore';
-% Province = '';
-% Npop= 5.612e6; % population
-% guess.LT = 1; % latent time in days, incubation period, gamma^(-1)
-% guess.QT = 2; % quarantine time in days, infectious period, delta^(-1)
-
 % Country = 'Korea, South';
-% Province = '';
-% Npop= 51.47e6; % population
-% guess.LT = 1; % latent time in days, incubation period, gamma^(-1)
-% guess.QT = 2; % quarantin
 
 % Country = 'China';
-% % Province = '';
-% % Npop = 1386e6; % population
 % Province = 'Hubei';
-% Npop = 59e6; % population
-% guess.LT = 1; % latent time in days
-% guess.QT = 2; % quarantine time in days
+
+%% FITTIN INTERVAL
+
+% FIT_UNTIL =  datenum(2020, 3, 31);
+FIT_UNTIL =  datenum(2020, 4, 2);
+
+%% DAYS TO FORECAST 
+
+FORECAST = 7;
 
 %% SOURCE
 
-source = 'online' ;
-% source = 'offline' ;
+% source = 'online' ;
+source = 'offline' ;
 
 [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins( source, './hopkins/' );
 
 % [tableConfirmed,tableDeaths,time] = get_covid_global_hopkins( source );
 
 
-%% DAYS TO FORECAST 
-
-FORECAST = 7;
-
 %% FIND COUNTRY
 
 try
-    indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
-    indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
-     
     indC = find( contains(  tableConfirmed.CountryRegion, Country) == 1 );
     indC = indC( ismissing( tableConfirmed.ProvinceState(indC), Province) );
+
+    % Population
+    Npop = tableConfirmed.Population (indC); 
+ 
+    indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
+    indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
    
-    indD = find(contains(tableDeaths.CountryRegion, Country)==1);
+    indD = find(contains(   tableDeaths.CountryRegion, Country)==1);
     indD = indD( ismissing( tableConfirmed.ProvinceState(indD), Province) );
     
 catch exception
@@ -158,15 +114,15 @@ end
 % suggests that the number of infectious is much larger than the number of
 % confirmed cases
 
-Recovered = table2array(tableRecovered(indR,5:end));
-Deaths    = table2array(tableDeaths(indD,5:end));
-Confirmed = table2array(tableConfirmed(indC,5:end));
+Confirmed = table2array(tableConfirmed(indC, 4:end));
+Recovered = table2array(tableRecovered(indR, 4:end));
+Deaths    = table2array(tableDeaths(indD, 4:end));
 
 minNum = 50;
-Recovered(Confirmed<=minNum)=[];
-Deaths(Confirmed<=minNum)=[];
-time(Confirmed<=minNum)= [];
-Confirmed(Confirmed<=minNum)=[];
+time(Confirmed <= minNum)= [];
+Recovered(Confirmed <= minNum)=[];
+Deaths(Confirmed <= minNum)=[];
+Confirmed(Confirmed <= minNum)=[];
 
 DAYS = length(time);
 
@@ -176,6 +132,9 @@ DAYS = length(time);
 E0 = Confirmed(1)  ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = Confirmed(1)  ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
+guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
+guess.QT = 4; % quarantine time in days, infectious period, delta^(-1)
+
 % Definition of the first estimates for the parameters
 guess.alpha = 1.0; % protection rate
 guess.beta  = 1.0; % Infection rate
@@ -183,7 +142,9 @@ guess.beta  = 1.0; % Infection rate
 guess.lambda = [0.5, 0.05]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
 
-param_fit = my_fit_SEIQRDP(Confirmed, Recovered, Deaths, Npop, E0, I0, time, guess);
+tdx = datefind( FIT_UNTIL, time);
+
+param_fit = my_fit_SEIQRDP(Confirmed(1:tdx), Recovered(1:tdx), Deaths(1:tdx), Npop, E0, I0, time(1:tdx), guess);
 
 Active = Confirmed-Recovered-Deaths;
 
@@ -199,7 +160,7 @@ D0 = Deaths(1);
 
 dt = 0.1; % time step
 
-time_sim  = datetime( time(1) ):dt:datetime( time(end) + FORECAST );
+time_sim  = datetime( time(1) ):dt:datetime( time(tdx) + FORECAST );
 
 N = numel(time_sim);
 t1 = (0:N-1).*dt;
@@ -270,27 +231,35 @@ font_tick  = 24;
 font_label = 30;
 font_legend = 18;
 font_title = 35;
-line_width = 3;
+font_point = 15;
+line_width = 2.5;
+line_width_pt= 2;
+mks = 9;
 
 figure
 
-time_fit  = time_sim (time_sim <= time(end));
-time_fore = time_sim (time_sim > time(end));
+time_fit  = time_sim (time_sim <= time(tdx));
+time_fore = time_sim (time_sim > time(tdx));
 
-q_fit  = Q1(time_sim <= time(end));
-q_fore = Q1(time_sim > time(end));
+q_fit  = Q1(time_sim <= time(tdx));
+q_fore = Q1(time_sim > time(tdx));
 
-i_fit  = I1(time_sim <= time(end)) + q_fit;
-i_fore = I1(time_sim > time(end))  + q_fore;
+i_fit  = I1(time_sim <= time(tdx)) + q_fit;
+i_fore = I1(time_sim > time(tdx))  + q_fore;
 
-r_fit  = R1(time_sim <= time(end));
-r_fore = R1(time_sim > time(end));
+r_fit  = R1(time_sim <= time(tdx));
+r_fore = R1(time_sim > time(tdx));
 
-d_fit  = D1(time_sim <= time(end));
-d_fore = D1(time_sim > time(end));
+d_fit  = D1(time_sim <= time(tdx));
+d_fore = D1(time_sim > time(tdx));
 
 c_fit = q_fit + r_fit + d_fit;
 c_fore = q_fore + r_fore + d_fore;
+
+ldx = contains( cellstr( datestr(time_fore) ), '00:00:00');
+time_fore_pt = time_fore( ldx );
+c_fore_pt = c_fore( ldx );
+
 
 q1 = semilogy(time_fit,  q_fit,  'color', red_dark, 'LineWidth', line_width);
 hold on
@@ -304,10 +273,13 @@ d1 = semilogy(time_fit,  d_fit,  'k', 'LineWidth', line_width);
 
 c1 = semilogy(time_fit,  c_fit,  'color', green, 'LineWidth', line_width);
      semilogy(time_fore, c_fore, 'color', green, 'LineWidth', line_width, 'LineStyle', '--');
+     
+cp = semilogy(time_fore_pt, c_fore_pt, 'color', green, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
+     
 
-cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);     
-qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);
-rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);
+cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);     
+qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
+rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
 dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
 
 i1 = semilogy(time_fit,  i_fit,  'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
@@ -366,6 +338,34 @@ annotation('textbox', [0.4, 0.735, 0.1, 0.1], 'string', text_box, ...
     'FontName','Arial');
 %     'FontWeight','bold',...
 
+% Points
+%--------------------------------------------------------------------------
+py = -60;
+B = 5;
+for i = size(Active, 2)-B : size(Active, 2)
+    text(time(i), Active(i)+py, sprintf('%d', Active(i)), 'FontSize',  font_point);
+end
+
+for i = size(Confirmed, 2)-B: size(Confirmed, 2)
+    text(time(i), Confirmed(i)+py, sprintf('%d', Confirmed(i)), 'FontSize',  font_point);
+end
+
+for i = size(Recovered, 2)-B: size(Recovered, 2)
+    text(time(i), Recovered(i)+py, sprintf('%d', Recovered(i)), 'FontSize',  font_point);
+end
+
+for i = size(Deaths, 2)-B: size(Deaths, 2)
+    text(time(i), Deaths(i)+py, sprintf('%d', Deaths(i)), 'FontSize',  font_point);
+end
+
+py = 90;
+for i = 1 : size(c_fore_pt, 2)
+    text(time_fore_pt(i), c_fore_pt(i)+py, sprintf('%d', round( c_fore_pt(i)) ), 'FontSize',  font_point);
+end
+%--------------------------------------------------------------------------
+
+
+
 set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):2:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
 
 set(tl,'FontSize', font_title);
@@ -387,6 +387,7 @@ rr = [r_fit r_fore]';
 dd = [d_fit d_fore]';
 
 file_str = sprintf('./csv/%s_covid-19_fit_forecast_%s.csv', Country, date() );
+file_str = sprintf('./csv/%s_covid-19_fit_forecast_lastest.csv', Country );
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths', 'Infected') ; % Print the time string
@@ -404,6 +405,7 @@ end
 fclose(fid) ;
 
 file_str = sprintf('./csv/%s_covid-19_reported_%s.csv', Country, date() );
+file_str = sprintf('./csv/%s_covid-19_reported_lastest.csv', Country );
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths') ; % Print the time string
