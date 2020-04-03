@@ -8,35 +8,47 @@
 % Version: 001
 % Date:    2020/04/02
 % Author:  Rodrigo Gonzalez <rodralez@frm.utn.edu.ar>
-% URL:     https://github.com/rodralez/covid-19 
+% URL:     https://github.com/rodralez/covid-19
 
-clear
-close all
-clc
+if (~exist('ITERATIVE','var')),  ITERATIVE  = 'OFF'; end
+
+if strcmp( ITERATIVE, 'OFF' )
+    clear
+    close all
+    clc
+    ITERATIVE  = 'OFF'
+    ADJ = 1.6;
+end
+
 
 %% Cases
 
 % S(t): susceptible cases,
-% P(t): insusceptible cases, 
+% P(t): insusceptible cases,
 % E(t): exposed cases(infected but not yet be infectious, in a latent period),
 % I(t): infectious cases(with infectious capacity and not yet be quarantined),
 % Q(t): quarantinedcases(confirmed and infected),
-% R(t): recovered cases and 
+% R(t): recovered cases and
 % D(t): % closed cases(or death
 
 %% Rates
 
-% alpha: protection rate, 
-% beta: infection rate, 
-% gamma: average latent time, 
-% delta: average quarantine time, 
-% lambda: cure rate, and 
+% alpha: protection rate,
+% beta: infection rate,
+% gamma: average latent time,
+% delta: average quarantine time,
+% lambda: cure rate, and
 % kappa: mortalityrate, separately
 
 %% COUNTRY
 
-% Country = 'Hubei';
-% Npop = 14e6; % population
+% Country = 'China';
+% % Province = '';
+% % Npop = 1386e6; % population
+% Province = 'Hubei';
+% Npop = 59e6; % population
+% guess.LT = 5; % latent time in days
+% guess.QT = 11; % quarantine time in days
 
 % Country = 'Germany';
 % Npop = 82.79e6; % population
@@ -49,11 +61,11 @@ clc
 % guess.LT = 4; % latent time in days
 % guess.QT = 6; % quarantine time in days
 
-Country = 'Spain';
-City = '';
-Npop = 46.66e6; % population
-guess.LT = 5; % latent time in days
-guess.QT = 10; % quarantine time in days
+% Country = 'Spain';
+% City = '';
+% Npop = 46.66e6; % population
+% guess.LT = 5; % latent time in days
+% guess.QT = 10; % quarantine time in days
 
 % Country = 'France';
 % City = '';
@@ -61,11 +73,15 @@ guess.QT = 10; % quarantine time in days
 % guess.LT = 1; % latent time in days
 % guess.QT = 5; % quarantine time in days
 
-% Country = 'Argentina';
-% City = '';
-% Npop= 45e6; % population
-% guess.LT = 5; % latent time in days
-% guess.QT = 23; % quarantine time in days
+Country = 'Argentina';
+Province = '';
+Npop= 45e6; % population
+% if strcmp( ITERATIVE, 'OFF' )
+    
+    guess.LT = 4; % latent time in days
+    guess.QT = 5; % quarantine time in days
+% end
+
 
 % Country = 'China';
 % City = 'Hubei';
@@ -73,30 +89,37 @@ guess.QT = 10; % quarantine time in days
 % guess.LT = 1; % latent time in days
 % guess.QT = 2; % quarantine time in days
 
+% Country = 'Singapore';
+% Province = '';
+% Npop= 5.612e6; % population
+% guess.LT = 1; % latent time in days, incubation period, gamma^(-1)
+% guess.QT = 2; % quarantine time in days, infectious period, delta^(-1)
+
 %% FORECAST SCENARIO
 
-FORECAST = 3;
+FORECAST = 7;
 
 %% SOURCE
 
 % source = 'online' ;
 source = 'offline' ;
 
-[tableConfirmed,tableDeaths,tableRecovered,time] = get_data_covid_hopkins( source );
+[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins( source, './hopkins/' );
 
 %% FIND COUNTRY
 
 try
-    indR = find( contains( tableRecovered.CountryRegion, Country) == 1 );
-    indR = indR(contains( tableRecovered.ProvinceState(indR), City ));
-     
-    indC = find( contains(tableConfirmed.CountryRegion, Country) == 1 );
-    indC = indC(contains( tableConfirmed.ProvinceState(indC), City ));
+    indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
+    indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
+    
+    indC = find( contains(  tableConfirmed.CountryRegion, Country) == 1 );
+    indC = indC( ismissing( tableConfirmed.ProvinceState(indC), Province) );
     
     indD = find(contains(tableDeaths.CountryRegion, Country)==1);
-    indD = indD(contains( tableDeaths.ProvinceState(indD), City ));
+    indD = indD( ismissing( tableConfirmed.ProvinceState(indD), Province) );
     
 catch exception
+    
     searchLoc = strfind(tableRecovered.ProvinceState,Country);
     indR = find([searchLoc{:}]==1);
     
@@ -104,12 +127,12 @@ catch exception
     indC = find([searchLoc{:}]==1);
     
     searchLoc = strfind(tableConfirmed.ProvinceState,Country);
-    indD = find([searchLoc{:}]==1); 
+    indD = find([searchLoc{:}]==1);
 end
 
 if ( isempty(indR) & isempty(indC) & isempty(indD))
     
-    error('%s was not found in COVID data!', Country)    
+    error('%s was not found in COVID data!', Country)
     
 end
 
@@ -131,7 +154,7 @@ Deaths(Confirmed<=minNum)=[];
 time(Confirmed<=minNum)= [];
 Confirmed(Confirmed<=minNum)=[];
 
-DAYS = length(time) - FORECAST; 
+DAYS = length(time) - FORECAST;
 
 %% FITTING
 
@@ -143,10 +166,7 @@ I0 = Confirmed(1) ; % Initial number of infectious cases. Unknown but unlikely t
 guess.alpha = 1.0; % protection rate
 guess.beta  = 1.0; % Infection rate
 
-% guess.LT = 5; % latent time in days
-% guess.QT = 21; % quarantine time in days
-
-guess.lambda = [0.2, 0.05]; % recovery rate
+guess.lambda = [0.5, 0.05]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
 
 Confirmed_short = Confirmed(1:DAYS);
@@ -155,30 +175,15 @@ Deaths_short    = Deaths(1:DAYS);
 
 param_short = my_fit_SEIQRDP(Confirmed_short, Recovered_short, Deaths_short, Npop, E0, I0, time(1:DAYS), guess);
 
-%% PRINT
+Active = Confirmed-Recovered-Deaths;
 
-fprintf(['Country: ', Country,'\n'] );
-
-fprintf(['Time series start on ',datestr(time(1)),'\n'] );
-fprintf(['Time series stop on ' ,datestr(time(end-FORECAST)),'\n'] );
-fprintf(['Time series forecast ',(FORECAST),' days\n'] );
-% fprintf(['Time series forecast until ',datestr(time(DAYS+FORECAST)),'\n'] );
-
-BRN = param_short.beta / param_short.delta * (1 - param_short.alpha)^DAYS; 
-fprintf( 'Basic Reproduction Number (BRN) is %f \n', BRN );
-fprintf( 'Alpha is %f \n', param_short.alpha );
-fprintf( 'Beta is %f \n', param_short.beta );
-fprintf( 'Latent time is %f \n', 1/param_short.gamma);
-fprintf( 'Quarantine is %f \n', 1/param_short.delta);
-fprintf( 'Recovery rate is [%f %f] \n', param_short.lambda(1), param_short.lambda(2) );
-fprintf( 'Death rate is [%f %f] \n', param_short.kappa(1), param_short.kappa(2) );
-
+Active_peak = max (Active);
 
 %% FORECAST Simulate the epidemy outbreak based on the fitted parameters
 
 % Initial conditions
-E0 = Confirmed(1); % Initial number of exposed cases. Unknown but unlikely to be zero.
-I0 = Confirmed(1); % Initial number of infectious cases. Unknown but unlikely to be zero.
+E0 = Confirmed(1) * ADJ; % Initial number of exposed cases. Unknown but unlikely to be zero.
+I0 = Confirmed(1) * ADJ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 Q0 = Confirmed(1);
 R0 = Recovered(1);
 D0 = Deaths(1);
@@ -191,6 +196,50 @@ N = numel(time_sim);
 t1 = (0:N-1).*dt;
 
 [S1,E1,I1,Q1,R1,D1,P1] = my_SEIQRDP(param_short, Npop, E0, I0, Q0, R0, D0, t1);
+
+%% DOUBLING ANALYSYS
+
+fdx = find ( Active < Active(end)/2, 1, 'last');
+doubling = datenum ( time(end)- time(fdx) );
+
+active_fore = Q1(end);
+active_repo = Active(end);
+active_err = abs ( (active_fore - active_repo) / active_repo * 100 )
+
+infec_err_srt = sprintf('Error is %.2f%%.',  active_err );
+
+%% PRINT
+
+fprintf(['Country: ', Country,'\n'] );
+
+fprintf(['Time series start on ',datestr(time(1)),'\n'] );
+fprintf(['Time series stop on ' ,datestr(time(end)),'\n'] );
+fprintf('Time series forecast %d days\n', FORECAST );
+
+BRN = param_short.beta / param_short.delta * (1 - param_short.alpha)^DAYS;
+
+Q_fore_str  = sprintf( 'Models predicts %d active cases on %s', round( (Q1(end)) ), datestr( time_sim(end) ) );
+N_fore_str  = sprintf( 'Models predicts new %d active cases on %s', round( (Q1(end)) - Active(end) ), datestr( time_sim(end) ) );
+I_fore_str  = sprintf( 'Models predicts %d potential infected on %s', round( Q1(end) + I1(end) ), datestr( time_sim(end) ) );
+doubling_str  = sprintf( 'Active cases are doubled in %d days', doubling );
+brn_str     = sprintf( 'Ro: %.2f', BRN );
+alpha_str   = sprintf( 'alpha : %.2f', param_short.alpha );
+beta_str    = sprintf( 'beta: %.2f', param_short.beta );
+gamma_str   = sprintf( 'gamma^-1: %.1f days', 1/param_short.gamma);
+delta_str   = sprintf( 'delta^-1: %.1f days', 1/param_short.delta);
+lambda_str  = sprintf( 'Recovery rate: %.2f%%', param_short.lambda(1)*100  );
+kappa_str   = sprintf( 'Death rate: %.2f%%', param_short.kappa(1)*100 );
+
+fprintf( '\n %s \n', Q_fore_str );
+fprintf( ' %s \n', I_fore_str );
+fprintf( ' %s \n', N_fore_str );
+fprintf( ' %s \n', brn_str );
+fprintf( ' %s \n', alpha_str );
+fprintf( ' %s \n', beta_str );
+fprintf( ' %s \n', gamma_str );
+fprintf( ' %s \n', delta_str );
+fprintf( ' %s \n', lambda_str );
+fprintf( ' %s \n', kappa_str );
 
 %% Comparison of the fitted and real data
 
@@ -209,11 +258,12 @@ font_legend = 18;
 font_title = 35;
 line_width = 3;
 
-Infected = Confirmed-Recovered-Deaths;
-infected_peak = max (Infected);
-
-figure('visible','off');
-% figure
+if strcmp( ITERATIVE, 'OFF' )
+    
+    figure
+else
+    figure('visible','off');
+end
 
 time_fit  = time_sim (time_sim < time(DAYS));
 time_fore = time_sim (time_sim > time(DAYS));
@@ -229,15 +279,15 @@ d_fore = D1(time_sim > time(DAYS));
 
 q1 = semilogy(time_fit,  q_fit,  'color', red_dark, 'LineWidth', line_width);
 hold on
-     semilogy(time_fore, q_fore, 'color', red_dark, 'LineWidth', line_width, 'LineStyle', '--');
+semilogy(time_fore, q_fore, 'color', red_dark, 'LineWidth', line_width, 'LineStyle', '--');
 
 r1 = semilogy(time_fit,  r_fit,  'color', blue, 'LineWidth', line_width);
-     semilogy(time_fore, r_fore, 'color', blue, 'LineWidth', line_width, 'LineStyle', '--');
+semilogy(time_fore, r_fore, 'color', blue, 'LineWidth', line_width, 'LineStyle', '--');
 
 d1 = semilogy(time_fit,  d_fit,  'k', 'LineWidth', line_width);
-     semilogy(time_fore, d_fore, 'k', 'LineWidth', line_width, 'LineStyle', '--');
+semilogy(time_fore, d_fore, 'k', 'LineWidth', line_width, 'LineStyle', '--');
 
-qr = semilogy(time, Infected, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);
+qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);
 rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);
 dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
 
@@ -250,8 +300,8 @@ yl = ylabel('Number of cases');
 xl = xlabel('Time (days)');
 
 leg = { 'Active (fitted)',...
-        'Recoveries (fitted)','Deaths (fitted)',...
-        'Active (reported)','Recoveries (reported)','Deaths  (reported)'};
+    'Recoveries (fitted)','Deaths (fitted)',...
+    'Active (reported)','Recoveries (reported)','Deaths  (reported)'};
 
 ll = legend([q1, r1, d1, qr, rr, dr], leg{:}, 'location','NorthWest'); % 'location','SouthWest'
 
@@ -270,13 +320,7 @@ set(gca,'yscale','lin')
 days_str = sprintf('SEIR fits from %s to %s', datestr( time(1) ), datestr( time(DAYS) ) );
 fore_str = sprintf('and forecasts from %s to %s.', datestr( time(DAYS+1) ), datestr( time(DAYS) + datenum(FORECAST)) );
 infec_fore_srt = sprintf('SEIR predicts %d infected on %s',  round( (Q1(end))), datestr( time(DAYS) + datenum(FORECAST)) );
-infec_repo_srt = sprintf('and in fact there were %d on this day.',  Infected (DAYS+FORECAST) );
-
-infec_fore = Q1(end);
-infec_repo = Infected (DAYS+FORECAST);
-infec_err = abs ( (infec_fore - infec_repo) / infec_repo * 100 )
-
-infec_err_srt = sprintf('Error is %.2f%%.',  infec_err );
+infec_repo_srt = sprintf('and in fact there were %d on this day.',  Active (end) );
 
 text_box = sprintf('%s\n%s\n%s\n%s\n%s', days_str , fore_str, infec_fore_srt, infec_repo_srt, infec_err_srt);
 

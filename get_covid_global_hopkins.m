@@ -24,7 +24,8 @@ end
 
 status = {'confirmed','deaths','recovered'};
 
-address = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/';
+server = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/';
+%          https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/
 
 for i=1:numel(status)
     
@@ -32,9 +33,8 @@ for i=1:numel(status)
     
     if ( strcmp (source, 'online'))
         
-        fullName = [address, filename];
-        websave(filename, fullName );
-        
+        url = [server,'time_series_covid19_',status{i},'_global.csv'];
+        websave( filename, url );        
     end
     
     opts = detectImportOptions(filename);

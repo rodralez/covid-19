@@ -40,6 +40,7 @@ clc
 %% COUNTRY
 
 % Country = 'Germany';
+% Province = '';
 % Npop = 82.79e6; % population
 % guess.LT = 5.1; % latent time in days
 % guess.QT = 20; % quarantine time in days
@@ -80,24 +81,36 @@ clc
 % guess.LT = 1; % latent time in days
 % guess.QT = 5; % quarantine time in days
 
-% Country = 'Argentina';
-% Province = '';
-% Npop= 45e6; % population
-% guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
-% guess.QT = 23; % quarantine time in days, infectious period, delta^(-1)
+Country = 'Argentina';
+Province = '';
+Npop= 45e6; % population
+guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
+guess.QT = 4; % quarantine time in days, infectious period, delta^(-1)
 
-Country = 'China';
+% Country = 'Singapore';
 % Province = '';
-% Npop = 1386e6; % population
-Province = 'Hubei';
-Npop = 59e6; % population
-guess.LT = 1; % latent time in days
-guess.QT = 2; % quarantine time in days
+% Npop= 5.612e6; % population
+% guess.LT = 1; % latent time in days, incubation period, gamma^(-1)
+% guess.QT = 2; % quarantine time in days, infectious period, delta^(-1)
+
+% Country = 'Korea, South';
+% Province = '';
+% Npop= 51.47e6; % population
+% guess.LT = 1; % latent time in days, incubation period, gamma^(-1)
+% guess.QT = 2; % quarantin
+
+% Country = 'China';
+% % Province = '';
+% % Npop = 1386e6; % population
+% Province = 'Hubei';
+% Npop = 59e6; % population
+% guess.LT = 1; % latent time in days
+% guess.QT = 2; % quarantine time in days
 
 %% SOURCE
 
-% source = 'online' ;
-source = 'offline' ;
+source = 'online' ;
+% source = 'offline' ;
 
 [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins( source, './hopkins/' );
 
@@ -160,16 +173,15 @@ DAYS = length(time);
 %% FITTING
 
 % Initial conditions
-E0 = Confirmed(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
-I0 = Confirmed(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
+E0 = Confirmed(1)  ; % Initial number of exposed cases. Unknown but unlikely to be zero.
+I0 = Confirmed(1)  ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
 % Definition of the first estimates for the parameters
-guess.alpha = 0.5; % protection rate
+guess.alpha = 1.0; % protection rate
 guess.beta  = 1.0; % Infection rate
 
-% guess.lambda = [0.1, 0.05]; % recovery rate
 guess.lambda = [0.5, 0.05]; % recovery rate
-guess.kappa  = [0.05, 0.1]; % death rate
+guess.kappa  = [0.1, 0.05]; % death rate
 
 param_fit = my_fit_SEIQRDP(Confirmed, Recovered, Deaths, Npop, E0, I0, time, guess);
 
@@ -178,8 +190,8 @@ Active = Confirmed-Recovered-Deaths;
 %% FORECAST Simulate the epidemy outbreak based on the fitted parameters
 
 % Initial conditions
-E0 = Confirmed(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
-I0 = Confirmed(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
+E0 = Confirmed(1) * 1.0; % Initial number of exposed cases. Unknown but unlikely to be zero.
+I0 = Confirmed(1) * 1.0; % Initial number of infectious cases. Unknown but unlikely to be zero.
 Q0 = Confirmed(1) ;
 
 R0 = Recovered(1);
@@ -192,14 +204,13 @@ time_sim  = datetime( time(1) ):dt:datetime( time(end) + FORECAST );
 N = numel(time_sim);
 t1 = (0:N-1).*dt;
 
-% param_fit.delta = 1 / 8; % Argentina 
-
 [S1,E1,I1,Q1,R1,D1,P1] = my_SEIQRDP(param_fit, Npop, E0, I0, Q0, R0, D0, t1);
 
+C1 = Q1 + R1 + D1 ;
 
 %% DOUBLING ANALYSYS
 
-fdx = find ( Active < Active(end)/2, 1, 'last');
+fdx = find ( Active >= Active(end)/2, 1, 'first');
 doubling = datenum ( time(end)- time(fdx) );
 
 %% PRINT
@@ -210,13 +221,22 @@ fprintf(['Time series start on ',datestr(time(1)),'\n'] );
 fprintf(['Time series stop on ' ,datestr(time(end)),'\n'] );
 fprintf('Time series forecast %d days\n', FORECAST );
 
-BRN = param_fit.beta / param_fit.delta * (1 - param_fit.alpha)^DAYS; 
+% BRN = param_fit.beta / param_fit.delta * (1 - param_fit.alpha)^DAYS; 
+BRN = param_fit.beta / param_fit.gamma ; 
+
+model_str   = sprintf( 'GeSEIR predicts on %s:', datestr( time_sim(end) ) );
+c_fore_str  = sprintf( '%d confirmed cases (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
+q_fore_str  = sprintf( '%d active cases (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
+r_fore_str  = sprintf( '%d recoveries (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
+d_fore_str  = sprintf( '%d deaths (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
+
+i_fore_str  = sprintf( '%d potential active cases', round( Q1(end) + I1(end) ) );
 
 Q_fore_str  = sprintf( 'Models predicts %d active cases on %s', round( (Q1(end)) ), datestr( time_sim(end) ) );
 N_fore_str  = sprintf( 'Models predicts new %d active cases on %s', round( (Q1(end)) - Active(end) ), datestr( time_sim(end) ) );
 I_fore_str  = sprintf( 'Models predicts %d potential infected on %s', round( Q1(end) + I1(end) ), datestr( time_sim(end) ) );
-doubling_str  = sprintf( 'Active cases are doubled in %d days', doubling );
-brn_str     = sprintf( 'Ro: %.2f', BRN );
+doub_str  = sprintf( 'Active cases are doubled in %d days', doubling );
+ro_str     = sprintf( 'Ro: %.2f', BRN );
 alpha_str   = sprintf( 'alpha : %.2f', param_fit.alpha );
 beta_str    = sprintf( 'beta: %.2f', param_fit.beta );
 gamma_str   = sprintf( 'gamma^-1: %.1f days', 1/param_fit.gamma);
@@ -227,7 +247,7 @@ kappa_str   = sprintf( 'Death rate: %.2f%%', param_fit.kappa(1)*100 );
 fprintf( '\n %s \n', Q_fore_str );
 fprintf( ' %s \n', I_fore_str );
 fprintf( ' %s \n', N_fore_str );
-fprintf( ' %s \n', brn_str );
+fprintf( ' %s \n', ro_str );
 fprintf( ' %s \n', alpha_str );
 fprintf( ' %s \n', beta_str );
 fprintf( ' %s \n', gamma_str );
@@ -269,6 +289,9 @@ r_fore = R1(time_sim > time(end));
 d_fit  = D1(time_sim <= time(end));
 d_fore = D1(time_sim > time(end));
 
+c_fit = q_fit + r_fit + d_fit;
+c_fore = q_fore + r_fore + d_fore;
+
 q1 = semilogy(time_fit,  q_fit,  'color', red_dark, 'LineWidth', line_width);
 hold on
      semilogy(time_fore, q_fore, 'color', red_dark, 'LineWidth', line_width, 'LineStyle', '--');
@@ -279,6 +302,10 @@ r1 = semilogy(time_fit,  r_fit,  'color', blue, 'LineWidth', line_width);
 d1 = semilogy(time_fit,  d_fit,  'k', 'LineWidth', line_width);
      semilogy(time_fore, d_fore, 'k', 'LineWidth', line_width, 'LineStyle', '--');
 
+c1 = semilogy(time_fit,  c_fit,  'color', green, 'LineWidth', line_width);
+     semilogy(time_fore, c_fore, 'color', green, 'LineWidth', line_width, 'LineStyle', '--');
+
+cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);     
 qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);
 rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width);
 dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
@@ -294,14 +321,22 @@ i1 = semilogy(time_fit,  i_fit,  'color', orange, 'LineWidth', line_width, 'Line
 yl = ylabel('Number of cases');
 xl = xlabel('Time (days)');
 
-leg = { 'Active (fitted)',...
+leg = { 'Confirmed (fitted)', 'Active (fitted)', ...
         'Recoveries (fitted)','Deaths (fitted)',...
-        'Active + Potential Infected', 'Active (reported)','Recoveries (reported)','Deaths  (reported)'};
+        'Active + Potential Infected', ... 
+        'Confirmed (reported)', 'Active (reported)', ... 
+        'Recoveries (reported)','Deaths (reported)'};
 
-ll = legend([q1, r1, d1, i1, qr, rr, dr], leg{:}, 'Location','NorthWest'); % 'Country','SouthWest'
+ll = legend([c1, q1, r1, d1, i1, cr, qr, rr, dr], leg{:}, 'Location','NorthWest'); % 'Country','SouthWest'
 
 date_str = datestr(time_fit(end));
-title_srt = sprintf('%s %s, SEIR model is fitted with %d days,\n forecasted %d days from %s', Country, Province, DAYS, FORECAST, date_str(1:11) );
+
+if (strcmp(Province, ''))
+    title_srt = sprintf('%s, GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Country, DAYS, FORECAST, date_str(1:11) );
+else
+    title_srt = sprintf('%s (%s), GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Province, Country, DAYS, FORECAST, date_str(1:11) );
+end
+
 tl =  title(title_srt);
 
 set(gcf,'color','w')
@@ -315,7 +350,15 @@ xlim([time_sim(1) time_sim(end) ])
 set(gca,'yscale','lin')
 % set(gca,'yscale','log')
 
-text_box = sprintf('%s.\n%s.\n%s.\n%s.', Q_fore_str, I_fore_str, doubling_str, brn_str);
+% model_str   = sprintf( 'Models predicts on %s:', datestr( time_sim(end) ) );
+% c_fore_str  = sprintf( '%d confirmed cases', round( (Q1(end)) + R1(end) + D1(end)) );
+% q_fore_str  = sprintf( '%d active cases', round( (Q1(end)) ) );
+% i_fore_str  = sprintf( '%d potential active cases', round( Q1(end) + I1(end) ) ):
+% r_fore_str  = sprintf( '%d recoveries', round( R1(end) ) );
+% d_fore_str  = sprintf( '%d deaths', round( D1(end) ) );
+
+text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.\n%s.', model_str, ... 
+        c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str, ro_str);
 
 annotation('textbox', [0.4, 0.735, 0.1, 0.1], 'string', text_box, ...
     'LineStyle','-',...
