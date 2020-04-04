@@ -46,9 +46,9 @@ Province = '';
 % Country = 'Chile';
 % Country = 'Turkey';
 % Country = 'Spain';
-Country = 'Italy';
+% Country = 'Italy';
 % Country = 'France';
-% Country = 'Argentina';
+Country = 'Argentina';
 % Country = 'Singapore';
 % Country = 'Korea, South';
 
@@ -228,7 +228,7 @@ red_dark =  [0.6350, 0.0780, 0.1840] ;
 
 font_tick  = 24;
 font_label = 30;
-font_legend = 18;
+font_legend = 16;
 font_title = 35;
 font_point = 12;
 line_width = 2.5;
@@ -296,6 +296,8 @@ dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
 yl = ylabel('Number of cases');
 xl = xlabel('Time (days)');
 
+% LEGEND
+%-------------------------------------------------------------------------- 
 leg = { 'Confirmed (fitted)', 'Active (fitted)', ...
         'Recoveries (fitted)','Deaths (fitted)',...
         'Active + Potential Infected', ... 
@@ -303,7 +305,10 @@ leg = { 'Confirmed (fitted)', 'Active (fitted)', ...
         'Recoveries (reported)','Deaths (reported)'};
 
 ll = legend([c1, q1, r1, d1, i1, cr, qr, rr, dr], leg{:}, 'Location','NorthWest'); % 'Country','SouthWest'
+%--------------------------------------------------------------------------
 
+% TITLE
+%--------------------------------------------------------------------------
 date_str = datestr(time_fit(end));
 
 if (strcmp(Province, ''))
@@ -313,33 +318,34 @@ else
 end
 
 tl =  title(title_srt);
+%--------------------------------------------------------------------------
 
 set(gcf,'color','w')
-
-grid on
-
-% axis tight
-
-xlim([time_sim(1) time_sim(end) ])
-
 set(gca,'yscale','lin')
 % set(gca,'yscale','log')
 
-% model_str   = sprintf( 'Models predicts on %s:', datestr( time_sim(end) ) );
-% c_fore_str  = sprintf( '%d confirmed cases', round( (Q1(end)) + R1(end) + D1(end)) );
-% q_fore_str  = sprintf( '%d active cases', round( (Q1(end)) ) );
-% i_fore_str  = sprintf( '%d potential active cases', round( Q1(end) + I1(end) ) ):
-% r_fore_str  = sprintf( '%d recoveries', round( R1(end) ) );
-% d_fore_str  = sprintf( '%d deaths', round( D1(end) ) );
+grid on
 
+xlim([time_sim(1) time_sim(end) ])
+
+set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):2:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
+
+set(tl,'FontSize', font_title);
+set(xl,'FontSize', font_label);
+set(yl,'FontSize', font_label);
+set(ll,'FontSize', font_legend);
+
+% TEXT BOX
+%--------------------------------------------------------------------------
 text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ... 
         c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
 
-annotation('textbox', [0.4, 0.735, 0.1, 0.1], 'string', text_box, ...
+annotation('textbox', [0.35, 0.735, 0.1, 0.1], 'string', text_box, ...
     'LineStyle','-',...
-    'FontSize', 20,...
+    'FontSize', font_legend,...
     'FontName','Arial');
 %     'FontWeight','bold',...
+%--------------------------------------------------------------------------
 
 % Points
 %--------------------------------------------------------------------------
@@ -349,7 +355,7 @@ qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none
 rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
 dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
 
-py = -100;
+py = -60;
 B = 5;
 for i = size(Active, 2)-B : size(Active, 2)
     text(time(i), Active(i) + py, sprintf('%d', Active(i)), 'FontSize',  font_point, 'color', red_dark);
@@ -367,38 +373,33 @@ for i = size(Deaths, 2)-B: size(Deaths, 2)
     text(time(i), Deaths(i)+py, sprintf('%d', Deaths(i)), 'FontSize',  font_point, 'color', 'black');
 end
 
-py = -300;
+py = 60;
 T = 0.1;
 for i = 1 : size(c_fore_pt, 2)
-    text(time_fore_pt(i)-T, c_fore_pt(i)+py, sprintf('%d', ( c_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
+    text(time_fore_pt(i)-T, c_fore_pt(i)+py, sprintf('%d', round( c_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
 end
 
 for i = 1 : size(q_fore_pt, 2)
-    text(time_fore_pt(i)-T, q_fore_pt(i)+py, sprintf('%d', ( q_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
+    text(time_fore_pt(i)-T, q_fore_pt(i)+py, sprintf('%d', round( q_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
 end
 
 for i = 1 : size(r_fore_pt, 2)
-    text(time_fore_pt(i)-T, r_fore_pt(i)+py, sprintf('%d', ( r_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
+    text(time_fore_pt(i)-T, r_fore_pt(i)+py, sprintf('%d', round( r_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
 end
 
 for i = 1 : size(d_fore_pt, 2)
-    text(time_fore_pt(i)-T, d_fore_pt(i)+py, sprintf('%d', ( d_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
+    text(time_fore_pt(i)-T, d_fore_pt(i)+py, sprintf('%d', round( d_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
 end
 %--------------------------------------------------------------------------
 
+
 %% SAVE FIGURE TO PNG FILE
-
-set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):2:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
-
-set(tl,'FontSize', font_title);
-set(xl,'FontSize', font_label);
-set(yl,'FontSize', font_label);
-set(ll,'FontSize', font_legend);
 
 file_str = sprintf('./png/%s_covid-19_forecast_from_present_%s.png', Country, datetime() );
 
 set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
 saveas(gcf,file_str)
+
 
 %% SAVE DATA TO CSV FILE
 
@@ -409,7 +410,6 @@ rr = [r_fit r_fore]';
 dd = [d_fit d_fore]';
 
 file_str = sprintf('./csv/%s_covid-19_fit_forecast_%s.csv', Country, date() );
-file_str = sprintf('./csv/%s_covid-19_fit_forecast_lastest.csv', Country );
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths', 'Infected') ; % Print the time string
@@ -426,8 +426,13 @@ end
 
 fclose(fid) ;
 
+cp_command = sprintf('cp %s ./csv/%s_covid-19_fit_forecast_lastest.csv', file_str, Country );
+ret = system(cp_command);
+if ret ~= 0
+    error('cp error!');
+end
+
 file_str = sprintf('./csv/%s_covid-19_reported_%s.csv', Country, date() );
-file_str = sprintf('./csv/%s_covid-19_reported_lastest.csv', Country );
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths') ; % Print the time string
@@ -439,4 +444,10 @@ for idx = 1:size(Active, 2)  % Loop through each time/value row size(qq, 1)
    fprintf(fid, '%12.5f,', Recovered(idx) ) ; % active
    fprintf(fid, '%12.5f,', Deaths(idx) ) ; % active
    fprintf(fid, '\n' ) ; % active
+end
+
+cp_command = sprintf('cp %s ./csv/%s_covid-19_reported_lastest.csv', file_str, Country );
+ret = system(cp_command);
+if ret ~= 0
+    error('cp error!');
 end
