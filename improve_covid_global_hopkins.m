@@ -13,44 +13,6 @@ function tableData = improve_covid_global_hopkins( tableData )
 
 tableData = sortrows(tableData, 2);
 
-%% ADD POPULATION
-
-filename = './hopkins/WPP2019_TotalPopulationBySex.csv';
-
-opts = detectImportOptions(filename);
-
-tablePop = readtable(filename, opts);
-
-% Only year 2020
-tablePop( ~ismember (tablePop.Time, 2020) , :)=[];
-% Only medium values
-tablePop( ~ismember (tablePop.Variant, 'Medium') , :)=[];
-
-for idx = 1:size(tableData, 1)
-    
-    country = tableData.CountryRegion( idx );
-
-    % Special cases
-    if (strcmp( country, 'US')), country = 'United States of America'; end
-    if (strcmp( country, 'Vietnam')), country = 'Viet Nam'; end
-    if (strcmp( country, 'Korea, South')), country = 'Republic of Korea'; end
-    
-    ldx = strcmp(  tablePop.Location, country );    
-    NPop = tablePop.PopTotal ( ldx ) * 1000;   
-    
-    if (~ any(ldx))        
-    
-        ldx = contains(  tablePop.Location, country );
-        NPop = tablePop.PopTotal ( ldx ) * 1000;   
-        
-        if (~ any(ldx))
-            
-            NPop = Inf;
-        end
-    end
-    
-    tableData.Population (idx) = NPop;
-end
 
 %% Some countries have only data for provinces but not for the whole country as China.
 
@@ -90,3 +52,47 @@ while ( idx < tsize )
         idx = idx + 1;
     end
 end
+
+%% ADD POPULATION
+
+filename = './hopkins/WPP2019_TotalPopulationBySex.csv';
+
+opts = detectImportOptions(filename);
+
+tablePop = readtable(filename, opts);
+
+% Only year 2020
+tablePop( ~ismember (tablePop.Time, 2020) , :)=[];
+% Only medium values
+tablePop( ~ismember (tablePop.Variant, 'Medium') , :)=[];
+
+for idx = 1:size(tableData, 1)
+    
+    country = tableData.CountryRegion( idx );
+
+    % Special cases
+    if (strcmp( country, 'US')), country = 'United States of America'; end
+    if (strcmp( country, 'Vietnam')), country = 'Viet Nam'; end
+    if (strcmp( country, 'Korea, South')), country = 'Republic of Korea'; end
+    
+    ldx = strcmp(  tablePop.Location, country );    
+    NPop = tablePop.PopTotal ( ldx ) * 1000;   
+    
+    if (~ any(ldx))        
+    
+        ldx = contains(  tablePop.Location, country );
+        NPop = tablePop.PopTotal ( ldx ) * 1000;   
+        
+        if (~ any(ldx))
+            
+            NPop = Inf;
+        end
+    end
+    
+    tableData.Population (idx) = NPop;
+end
+
+%% 
+
+tableData = sortrows(tableData, 2);
+

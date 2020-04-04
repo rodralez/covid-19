@@ -46,9 +46,9 @@ Province = '';
 % Country = 'Chile';
 % Country = 'Turkey';
 % Country = 'Spain';
-% Country = 'Italy';
+Country = 'Italy';
 % Country = 'France';
-Country = 'Argentina';
+% Country = 'Argentina';
 % Country = 'Singapore';
 % Country = 'Korea, South';
 
@@ -56,13 +56,12 @@ Country = 'Argentina';
 % Province = 'Hubei';
 
 %% FITTIN INTERVAL
-
+% 
 % FIT_UNTIL =  datenum(2020, 3, 31);
-FIT_UNTIL =  datenum(2020, 4, 2);
+% FORECAST = 4; % DAYS TO FORECAST 
 
-%% DAYS TO FORECAST 
-
-FORECAST = 7;
+FIT_UNTIL =  datenum(2020, 4, 3);
+FORECAST = 5; % DAYS TO FORECAST 
 
 %% SOURCE
 
@@ -224,14 +223,14 @@ yellow = [0.9290, 0.6940, 0.1250] ;
 purple = [0.4940, 0.1840, 0.5560];
 green =  [0.4660, 0.6740, 0.1880];
 blue_light = [0.3010, 0.7450, 0.9330] ;
-gray = ones(1,3) * 0.65;
+gray = ones(1,3) * 0.5;
 red_dark =  [0.6350, 0.0780, 0.1840] ;
 
 font_tick  = 24;
 font_label = 30;
 font_legend = 18;
 font_title = 35;
-font_point = 15;
+font_point = 12;
 line_width = 2.5;
 line_width_pt= 2;
 mks = 9;
@@ -259,31 +258,35 @@ c_fore = q_fore + r_fore + d_fore;
 ldx = contains( cellstr( datestr(time_fore) ), '00:00:00');
 time_fore_pt = time_fore( ldx );
 c_fore_pt = c_fore( ldx );
-
+q_fore_pt = q_fore( ldx );
+r_fore_pt = r_fore( ldx );
+d_fore_pt = d_fore( ldx );
 
 q1 = semilogy(time_fit,  q_fit,  'color', red_dark, 'LineWidth', line_width);
 hold on
-     semilogy(time_fore, q_fore, 'color', red_dark, 'LineWidth', line_width, 'LineStyle', '--');
+%      semilogy(time_fore, q_fore, 'color', red_dark, 'LineWidth', line_width, 'LineStyle', '--');
 
 r1 = semilogy(time_fit,  r_fit,  'color', blue, 'LineWidth', line_width);
-     semilogy(time_fore, r_fore, 'color', blue, 'LineWidth', line_width, 'LineStyle', '--');
+%      semilogy(time_fore, r_fore, 'color', blue, 'LineWidth', line_width, 'LineStyle', '--');
 
 d1 = semilogy(time_fit,  d_fit,  'k', 'LineWidth', line_width);
-     semilogy(time_fore, d_fore, 'k', 'LineWidth', line_width, 'LineStyle', '--');
+%      semilogy(time_fore, d_fore, 'k', 'LineWidth', line_width, 'LineStyle', '--');
 
 c1 = semilogy(time_fit,  c_fit,  'color', green, 'LineWidth', line_width);
-     semilogy(time_fore, c_fore, 'color', green, 'LineWidth', line_width, 'LineStyle', '--');
+%      semilogy(time_fore, c_fore, 'color', green, 'LineWidth', line_width, 'LineStyle', '--');
+
+i1 = semilogy(time_fit,  i_fit,  'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
+     semilogy(time_fore, i_fore, 'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
      
-cp = semilogy(time_fore_pt, c_fore_pt, 'color', green, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
-     
+cp = semilogy(time_fore_pt, c_fore_pt, 'color', green, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
+qp = semilogy(time_fore_pt, q_fore_pt, 'color', red_dark, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
+rp = semilogy(time_fore_pt, r_fore_pt, 'color', blue, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
+dp = semilogy(time_fore_pt, d_fore_pt, 'color', 'black', 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
 
 cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);     
 qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
 rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
 dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
-
-i1 = semilogy(time_fit,  i_fit,  'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
-     semilogy(time_fore, i_fore, 'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
 
 % l1_fit = line ([time(1) time(1)], [0 infected_peak], 'color', blue, 'linewidth', 2, 'LineStyle', '--');
 % l2_fit = line ([time(DAYS) time(DAYS)], [0 infected_peak ], 'color', blue, 'linewidth', 2, 'LineStyle', '--');
@@ -329,8 +332,8 @@ set(gca,'yscale','lin')
 % r_fore_str  = sprintf( '%d recoveries', round( R1(end) ) );
 % d_fore_str  = sprintf( '%d deaths', round( D1(end) ) );
 
-text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.\n%s.', model_str, ... 
-        c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str, ro_str);
+text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ... 
+        c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
 
 annotation('textbox', [0.4, 0.735, 0.1, 0.1], 'string', text_box, ...
     'LineStyle','-',...
@@ -340,31 +343,50 @@ annotation('textbox', [0.4, 0.735, 0.1, 0.1], 'string', text_box, ...
 
 % Points
 %--------------------------------------------------------------------------
-py = -60;
+
+cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);     
+qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
+rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
+dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
+
+py = -100;
 B = 5;
 for i = size(Active, 2)-B : size(Active, 2)
-    text(time(i), Active(i)+py, sprintf('%d', Active(i)), 'FontSize',  font_point);
+    text(time(i), Active(i) + py, sprintf('%d', Active(i)), 'FontSize',  font_point, 'color', red_dark);
 end
 
 for i = size(Confirmed, 2)-B: size(Confirmed, 2)
-    text(time(i), Confirmed(i)+py, sprintf('%d', Confirmed(i)), 'FontSize',  font_point);
+    text(time(i), Confirmed(i) + py, sprintf('%d', Confirmed(i)), 'FontSize',  font_point, 'color', green);
 end
 
 for i = size(Recovered, 2)-B: size(Recovered, 2)
-    text(time(i), Recovered(i)+py, sprintf('%d', Recovered(i)), 'FontSize',  font_point);
+    text(time(i), Recovered(i)+py, sprintf('%d', Recovered(i)), 'FontSize',  font_point, 'color', blue);
 end
 
 for i = size(Deaths, 2)-B: size(Deaths, 2)
-    text(time(i), Deaths(i)+py, sprintf('%d', Deaths(i)), 'FontSize',  font_point);
+    text(time(i), Deaths(i)+py, sprintf('%d', Deaths(i)), 'FontSize',  font_point, 'color', 'black');
 end
 
-py = 90;
+py = -300;
+T = 0.1;
 for i = 1 : size(c_fore_pt, 2)
-    text(time_fore_pt(i), c_fore_pt(i)+py, sprintf('%d', round( c_fore_pt(i)) ), 'FontSize',  font_point);
+    text(time_fore_pt(i)-T, c_fore_pt(i)+py, sprintf('%d', ( c_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
+end
+
+for i = 1 : size(q_fore_pt, 2)
+    text(time_fore_pt(i)-T, q_fore_pt(i)+py, sprintf('%d', ( q_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
+end
+
+for i = 1 : size(r_fore_pt, 2)
+    text(time_fore_pt(i)-T, r_fore_pt(i)+py, sprintf('%d', ( r_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
+end
+
+for i = 1 : size(d_fore_pt, 2)
+    text(time_fore_pt(i)-T, d_fore_pt(i)+py, sprintf('%d', ( d_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
 end
 %--------------------------------------------------------------------------
 
-
+%% SAVE FIGURE TO PNG FILE
 
 set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):2:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
 
@@ -378,7 +400,7 @@ file_str = sprintf('./png/%s_covid-19_forecast_from_present_%s.png', Country, da
 set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
 saveas(gcf,file_str)
 
-%% WRITE TO CSV
+%% SAVE DATA TO CSV FILE
 
 tt = [time_fit time_fore]';
 qq = [q_fit q_fore]';
@@ -418,7 +440,3 @@ for idx = 1:size(Active, 2)  % Loop through each time/value row size(qq, 1)
    fprintf(fid, '%12.5f,', Deaths(idx) ) ; % active
    fprintf(fid, '\n' ) ; % active
 end
-
-
-
-

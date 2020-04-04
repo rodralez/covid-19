@@ -59,14 +59,12 @@ for i=1:numel(status)
         tableDeaths = readtable(filename, opts);
         tableDeaths = tableDeaths(2:end,:); % First line is header and is descarted
         tableDeaths.Long = []; % Long column is descarted
-        tableDeaths = sortrows(tableDeaths, 2);
         tableDeaths = improve_covid_global_hopkins( tableDeaths );
         
     elseif strcmpi(status{i},'Recovered')
         tableRecovered = readtable(filename, opts);
         tableRecovered = tableRecovered(2:end,:); % First line is header and is descarted
         tableRecovered.Long = []; % Long column is descarted
-        tableRecovered = sortrows(tableRecovered, 2);   
         tableRecovered = improve_covid_global_hopkins( tableRecovered );
     else
         error('Unknown status')
