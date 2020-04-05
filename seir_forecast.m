@@ -61,7 +61,7 @@ Country = 'Argentina';
 % FORECAST = 4; % DAYS TO FORECAST 
 
 FIT_UNTIL =  datenum(2020, 4, 3);
-FORECAST = 5; % DAYS TO FORECAST 
+FORECAST = 7; % DAYS TO FORECAST 
 
 %% SOURCE
 
@@ -226,10 +226,12 @@ blue_light = [0.3010, 0.7450, 0.9330] ;
 gray = ones(1,3) * 0.5;
 red_dark =  [0.6350, 0.0780, 0.1840] ;
 
-font_tick  = 24;
-font_label = 30;
+
+font_title = 33;
+font_label = 27;
+font_tick  = 21;
 font_legend = 16;
-font_title = 35;
+
 font_point = 12;
 line_width = 2.5;
 line_width_pt= 2;
@@ -340,7 +342,7 @@ set(ll,'FontSize', font_legend);
 text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ... 
         c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
 
-annotation('textbox', [0.35, 0.735, 0.1, 0.1], 'string', text_box, ...
+annotation('textbox', [0.36, 0.735, 0.1, 0.1], 'string', text_box, ...
     'LineStyle','-',...
     'FontSize', font_legend,...
     'FontName','Arial');
@@ -395,9 +397,12 @@ end
 
 %% SAVE FIGURE TO PNG FILE
 
-file_str = sprintf('./png/%s_covid-19_forecast_from_present_%s.png', Country, datetime() );
+file_name = sprintf('%s_covid-19_fit_forecast_%s', Country, datestr( FIT_UNTIL ) );
+
+file_str = sprintf('./png/%s.png', file_name );
 
 set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
+
 saveas(gcf,file_str)
 
 
@@ -409,7 +414,7 @@ ii = [i_fit i_fore]';
 rr = [r_fit r_fore]';
 dd = [d_fit d_fore]';
 
-file_str = sprintf('./csv/%s_covid-19_fit_forecast_%s.csv', Country, date() );
+file_str = sprintf('./csv/%s.csv', file_name );
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths', 'Infected') ; % Print the time string
@@ -432,14 +437,18 @@ if ret ~= 0
     error('cp error!');
 end
 
-file_str = sprintf('./csv/%s_covid-19_reported_%s.csv', Country, date() );
+%--------------------------------------------------------------------------
+
+file_name = sprintf('%s_covid-19_reported_%s', Country, datestr( FIT_UNTIL ) );
+
+file_str = sprintf('./csv/%s.csv', file_name);
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths') ; % Print the time string
 
-for idx = 1:size(Active, 2)  % Loop through each time/value row size(qq, 1)
+for idx = 1:size(time(1:tdx), 2)  % Loop through each time/value row size(qq, 1)
     
-   fprintf(fid, '%s,', datestr ( time(1, idx) , 31 ) ) ; % date
+   fprintf(fid, '%s,',     datestr ( time(1, idx) , 31 ) ) ; % date
    fprintf(fid, '%12.5f,', Active(idx) ) ; % active
    fprintf(fid, '%12.5f,', Recovered(idx) ) ; % active
    fprintf(fid, '%12.5f,', Deaths(idx) ) ; % active
