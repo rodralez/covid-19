@@ -138,9 +138,6 @@ guess.QT = 5; % 2 weeks, quarantine time in days, recovery time, infectious peri
 % Definition of the first estimates for the parameters
 guess.alpha = 1.0; % protection rate
 guess.beta  = 1.0; % Infection rate
-
-% lambda = lambda0(1)*(1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
-% kappa = kappa0(1)*exp(-kappa0(2).*t); % I use these functions for illustrative purpose only
         
 guess.lambda = [0.5, 0.1]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
@@ -161,9 +158,9 @@ Q0 = Confirmed(1) ;
 R0 = Recovered(1);
 D0 = Deaths(1);
 
-dt = 0.1; % time step
+dt = 1/24; % time step
 
-time_sim  = datetime( time(1) ):dt:datetime( time(tdx) + FORECAST );
+time_sim  = datetime( time(1) ): dt : datetime( time(tdx) + FORECAST );
 
 N = numel(time_sim);
 t1 = (0:N-1).*dt;
@@ -228,12 +225,12 @@ blue_light = [0.3010, 0.7450, 0.9330] ;
 gray = ones(1,3) * 0.5;
 red_dark =  [0.6350, 0.0780, 0.1840] ;
 
-font_title = 33;
-font_label = 27;
-font_tick  = 21;
+font_title = 30;
+font_label = 25;
+font_tick  = 20;
 font_legend = 16;
 
-font_point = 12;
+font_point = 14;
 line_width = 2.5;
 line_width_pt= 2;
 mks = 9;
@@ -352,40 +349,41 @@ semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'Lin
 semilogy(time, Deaths,'ko', 'LineWidth', line_width);
 
 
-py = max(c_fore_pt)/15;
+py = max(c_fore_pt)/14;
 B = 5;
+delay = -1/2;
 
 for i = size(Active, 2)-B : 2 : size(Active, 2)
-    text(time(i), Active(i) + py, sprintf('%s', num2sip( Active(i) , 3)), 'FontSize',  font_point, 'color', red_dark ) ;
+    text( time(i)+delay , Active(i) + py, sprintf('%s', num2sip( Active(i) , 3)), 'FontSize',  font_point, 'color', red_dark ) ;
 end
 
 for i = size(Confirmed, 2)-B: 2 :size(Confirmed, 2)
-    text(time(i), Confirmed(i) + py, sprintf('%s', num2sip(Confirmed(i) , 3)), 'FontSize',  font_point, 'color', green );
+    text( time(i)+delay, Confirmed(i) + py, sprintf('%s', num2sip(Confirmed(i) , 3)), 'FontSize',  font_point, 'color', green );
 end
 
 for i = size(Recovered, 2)-B: 2 : size(Recovered, 2)
-    text(time(i), Recovered(i)+py, sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
+    text( time(i)+delay, Recovered(i)+py, sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
 end
 
 for i = size(Deaths, 2)-B: 2 : size(Deaths, 2)
-    text(time(i), Deaths(i)+py, sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+    text( time(i)+delay, Deaths(i)+py, sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
 end
 
 
 for i = 1 : 2 : size(c_fore_pt, 2)
-    text(time_fore_pt(i), c_fore_pt(i)+py, sprintf('%s', num2sip(round( c_fore_pt(i) ) , 3)), 'FontSize',  font_point, 'Color', gray);
+    text( time_fore_pt(i)+delay, c_fore_pt(i)+py, sprintf('%s', num2sip(round( c_fore_pt(i) ) , 3)), 'FontSize',  font_point, 'Color', gray);
 end
 
 for i = 1 : 2 : size(q_fore_pt, 2)
-    text(time_fore_pt(i), q_fore_pt(i)+py, sprintf('%s', num2sip(round( q_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+    text( time_fore_pt(i)+delay, q_fore_pt(i)+py, sprintf('%s', num2sip(round( q_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
 end
 
 for i = 1 : 2 : size(r_fore_pt, 2)
-    text(time_fore_pt(i), r_fore_pt(i)+py, sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+    text(time_fore_pt(i)+delay, r_fore_pt(i)+py, sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
 end
 
 for i = 1 : 2 : size(d_fore_pt, 2)
-    text(time_fore_pt(i), d_fore_pt(i)+py, sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+    text(time_fore_pt(i)+delay, d_fore_pt(i)+py, sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
 end
 %--------------------------------------------------------------------------
 
