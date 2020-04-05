@@ -18,6 +18,8 @@ clear
 close all
 clc
 
+addpath ./num2sip
+
 %% Cases
 
 % S(t): susceptible cases,
@@ -130,14 +132,17 @@ DAYS = length(time);
 E0 = Confirmed(1)  ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = Confirmed(1)  ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
-guess.LT = 5; % latent time in days, incubation period, gamma^(-1)
-guess.QT = 4; % quarantine time in days, infectious period, delta^(-1)
+guess.LT = 5; % 1-14 days, latent time in days, incubation period, gamma^(-1)
+guess.QT = 5; % 2 weeks, quarantine time in days, recovery time, infectious period, delta^(-1)
 
 % Definition of the first estimates for the parameters
 guess.alpha = 1.0; % protection rate
 guess.beta  = 1.0; % Infection rate
 
-guess.lambda = [0.5, 0.05]; % recovery rate
+% lambda = lambda0(1)*(1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
+% kappa = kappa0(1)*exp(-kappa0(2).*t); % I use these functions for illustrative purpose only
+        
+guess.lambda = [0.5, 0.1]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
 
 tdx = datefind( FIT_UNTIL, time);
@@ -180,9 +185,6 @@ fprintf(['Time series start on ',datestr(time(1)),'\n'] );
 fprintf(['Time series stop on ' ,datestr(time(end)),'\n'] );
 fprintf('Time series forecast %d days\n', FORECAST );
 
-% BRN = param_fit.beta / param_fit.delta * (1 - param_fit.alpha)^DAYS; 
-BRN = param_fit.beta / param_fit.gamma ; 
-
 model_str   = sprintf( 'GeSEIR predicts on %s:', datestr( time_sim(end) ) );
 c_fore_str  = sprintf( '%d confirmed cases (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
 q_fore_str  = sprintf( '%d active cases (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
@@ -195,18 +197,18 @@ Q_fore_str  = sprintf( 'Models predicts %d active cases on %s', round( (Q1(end))
 N_fore_str  = sprintf( 'Models predicts new %d active cases on %s', round( (Q1(end)) - Active(end) ), datestr( time_sim(end) ) );
 I_fore_str  = sprintf( 'Models predicts %d potential infected on %s', round( Q1(end) + I1(end) ), datestr( time_sim(end) ) );
 doub_str  = sprintf( 'Active cases are doubled in %d days', doubling );
-ro_str     = sprintf( 'Ro: %.2f', BRN );
+% ro_str     = sprintf( 'Ro: %.2f', BRN );
 alpha_str   = sprintf( 'alpha : %.2f', param_fit.alpha );
 beta_str    = sprintf( 'beta: %.2f', param_fit.beta );
 gamma_str   = sprintf( 'gamma^-1: %.1f days', 1/param_fit.gamma);
 delta_str   = sprintf( 'delta^-1: %.1f days', 1/param_fit.delta);
-lambda_str  = sprintf( 'Recovery rate: %.2f%%', param_fit.lambda(1)*100  );
-kappa_str   = sprintf( 'Death rate: %.2f%%', param_fit.kappa(1)*100 );
+lambda_str  = sprintf( 'Recovery rate: [%f %f]', param_fit.lambda(1), param_fit.lambda(2) );
+kappa_str   = sprintf( 'Death rate: [%f %f]', param_fit.kappa(1), param_fit.kappa(2) );
 
 fprintf( '\n %s \n', Q_fore_str );
 fprintf( ' %s \n', I_fore_str );
 fprintf( ' %s \n', N_fore_str );
-fprintf( ' %s \n', ro_str );
+% fprintf( ' %s \n', ro_str );
 fprintf( ' %s \n', alpha_str );
 fprintf( ' %s \n', beta_str );
 fprintf( ' %s \n', gamma_str );
@@ -216,6 +218,7 @@ fprintf( ' %s \n', kappa_str );
 
 %% PLOT
 
+%--------------------------------------------------------------------------
 blue = [0, 0.4470, 0.7410];
 orange = [0.8500, 0.3250, 0.0980];
 yellow = [0.9290, 0.6940, 0.1250] ;
@@ -224,7 +227,6 @@ green =  [0.4660, 0.6740, 0.1880];
 blue_light = [0.3010, 0.7450, 0.9330] ;
 gray = ones(1,3) * 0.5;
 red_dark =  [0.6350, 0.0780, 0.1840] ;
-
 
 font_title = 33;
 font_label = 27;
@@ -236,7 +238,7 @@ line_width = 2.5;
 line_width_pt= 2;
 mks = 9;
 
-figure
+%--------------------------------------------------------------------------
 
 time_fit  = time_sim (time_sim <= time(tdx));
 time_fore = time_sim (time_sim > time(tdx));
@@ -262,6 +264,10 @@ c_fore_pt = c_fore( ldx );
 q_fore_pt = q_fore( ldx );
 r_fore_pt = r_fore( ldx );
 d_fore_pt = d_fore( ldx );
+
+%--------------------------------------------------------------------------
+
+figure
 
 q1 = semilogy(time_fit,  q_fit,  'color', red_dark, 'LineWidth', line_width);
 hold on
@@ -294,8 +300,94 @@ dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
 % l1_fore = line ([time(DAYS+1) time(DAYS+1)], [0 infected_peak], 'color', orange, 'linewidth', 2, 'LineStyle', '--');
 % l2_fore = line ([time(DAYS+FORECAST) time(DAYS+FORECAST)], [0 infected_peak ], 'color', orange, 'linewidth', 2, 'LineStyle', '--');
 
+grid on
+
+%--------------------------------------------------------------------------
+
 yl = ylabel('Number of cases');
 xl = xlabel('Time (days)');
+
+set(gcf,'color','w')
+set(gca,'yscale','lin')
+% set(gca,'yscale','log')
+
+xlim([time_sim(1) time_sim(end) ])
+
+set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):2:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
+
+%--------------------------------------------------------------------------
+
+% TITLE
+%--------------------------------------------------------------------------
+
+date_str = datestr(time_fit(end));
+
+if (strcmp(Province, ''))
+    title_srt = sprintf('%s, GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Country, DAYS, FORECAST, date_str(1:11) );
+else
+    title_srt = sprintf('%s (%s), GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Province, Country, DAYS, FORECAST, date_str(1:11) );
+end
+
+tl =  title(title_srt);
+
+
+% TEXT BOX
+%--------------------------------------------------------------------------
+text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ... 
+        c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
+
+annotation('textbox', [0.36, 0.745, 0.1, 0.1], 'string', text_box, ...
+    'LineStyle','-',...
+    'FontSize', font_legend,...
+    'FontName','Arial');
+%     'FontWeight','bold',...
+%--------------------------------------------------------------------------
+
+% Points
+%--------------------------------------------------------------------------
+
+semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);     
+semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
+semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
+semilogy(time, Deaths,'ko', 'LineWidth', line_width);
+
+
+py = max(c_fore_pt)/15;
+B = 5;
+
+for i = size(Active, 2)-B : 2 : size(Active, 2)
+    text(time(i), Active(i) + py, sprintf('%s', num2sip( Active(i) , 3)), 'FontSize',  font_point, 'color', red_dark ) ;
+end
+
+for i = size(Confirmed, 2)-B: 2 :size(Confirmed, 2)
+    text(time(i), Confirmed(i) + py, sprintf('%s', num2sip(Confirmed(i) , 3)), 'FontSize',  font_point, 'color', green );
+end
+
+for i = size(Recovered, 2)-B: 2 : size(Recovered, 2)
+    text(time(i), Recovered(i)+py, sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
+end
+
+for i = size(Deaths, 2)-B: 2 : size(Deaths, 2)
+    text(time(i), Deaths(i)+py, sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+end
+
+
+for i = 1 : 2 : size(c_fore_pt, 2)
+    text(time_fore_pt(i), c_fore_pt(i)+py, sprintf('%s', num2sip(round( c_fore_pt(i) ) , 3)), 'FontSize',  font_point, 'Color', gray);
+end
+
+for i = 1 : 2 : size(q_fore_pt, 2)
+    text(time_fore_pt(i), q_fore_pt(i)+py, sprintf('%s', num2sip(round( q_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+end
+
+for i = 1 : 2 : size(r_fore_pt, 2)
+    text(time_fore_pt(i), r_fore_pt(i)+py, sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+end
+
+for i = 1 : 2 : size(d_fore_pt, 2)
+    text(time_fore_pt(i), d_fore_pt(i)+py, sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+end
+%--------------------------------------------------------------------------
 
 % LEGEND
 %-------------------------------------------------------------------------- 
@@ -306,93 +398,13 @@ leg = { 'Confirmed (fitted)', 'Active (fitted)', ...
         'Recoveries (reported)','Deaths (reported)'};
 
 ll = legend([c1, q1, r1, d1, i1, cr, qr, rr, dr], leg{:}, 'Location','NorthWest'); % 'Country','SouthWest'
+
 %--------------------------------------------------------------------------
-
-% TITLE
-%--------------------------------------------------------------------------
-date_str = datestr(time_fit(end));
-
-if (strcmp(Province, ''))
-    title_srt = sprintf('%s, GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Country, DAYS, FORECAST, date_str(1:11) );
-else
-    title_srt = sprintf('%s (%s), GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Province, Country, DAYS, FORECAST, date_str(1:11) );
-end
-
-tl =  title(title_srt);
-%--------------------------------------------------------------------------
-
-set(gcf,'color','w')
-set(gca,'yscale','lin')
-% set(gca,'yscale','log')
-
-grid on
-
-xlim([time_sim(1) time_sim(end) ])
-
-set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):2:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
 
 set(tl,'FontSize', font_title);
 set(xl,'FontSize', font_label);
 set(yl,'FontSize', font_label);
 set(ll,'FontSize', font_legend);
-
-% TEXT BOX
-%--------------------------------------------------------------------------
-text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ... 
-        c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
-
-annotation('textbox', [0.36, 0.735, 0.1, 0.1], 'string', text_box, ...
-    'LineStyle','-',...
-    'FontSize', font_legend,...
-    'FontName','Arial');
-%     'FontWeight','bold',...
-%--------------------------------------------------------------------------
-
-% Points
-%--------------------------------------------------------------------------
-
-cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);     
-qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
-rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
-dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
-
-py = -60;
-B = 5;
-for i = size(Active, 2)-B : size(Active, 2)
-    text(time(i), Active(i) + py, sprintf('%d', Active(i)), 'FontSize',  font_point, 'color', red_dark);
-end
-
-for i = size(Confirmed, 2)-B: size(Confirmed, 2)
-    text(time(i), Confirmed(i) + py, sprintf('%d', Confirmed(i)), 'FontSize',  font_point, 'color', green);
-end
-
-for i = size(Recovered, 2)-B: size(Recovered, 2)
-    text(time(i), Recovered(i)+py, sprintf('%d', Recovered(i)), 'FontSize',  font_point, 'color', blue);
-end
-
-for i = size(Deaths, 2)-B: size(Deaths, 2)
-    text(time(i), Deaths(i)+py, sprintf('%d', Deaths(i)), 'FontSize',  font_point, 'color', 'black');
-end
-
-py = 60;
-T = 0.1;
-for i = 1 : size(c_fore_pt, 2)
-    text(time_fore_pt(i)-T, c_fore_pt(i)+py, sprintf('%d', round( c_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
-end
-
-for i = 1 : size(q_fore_pt, 2)
-    text(time_fore_pt(i)-T, q_fore_pt(i)+py, sprintf('%d', round( q_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
-end
-
-for i = 1 : size(r_fore_pt, 2)
-    text(time_fore_pt(i)-T, r_fore_pt(i)+py, sprintf('%d', round( r_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
-end
-
-for i = 1 : size(d_fore_pt, 2)
-    text(time_fore_pt(i)-T, d_fore_pt(i)+py, sprintf('%d', round( d_fore_pt(i)) ), 'FontSize',  font_point, 'Color', gray);
-end
-%--------------------------------------------------------------------------
-
 
 %% SAVE FIGURE TO PNG FILE
 
