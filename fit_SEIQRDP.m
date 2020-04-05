@@ -44,8 +44,8 @@ p = inputParser();
 p.CaseSensitive = false;
 p.addOptional('tolX',1e-3);  %  option for optimset
 p.addOptional('tolFun',1e-3);  %  option for optimset
-% p.addOptional('Display','iter'); % Display option for optimset
-p.addOptional('Display','off'); % Display option for optimset
+p.addOptional('Display','iter'); % Display option for optimset
+% p.addOptional('Display','off'); % Display option for optimset
 p.addOptional('dt', 0.1); % time step for the fitting
 p.parse(varargin{:});
 
@@ -78,7 +78,7 @@ t = tTarget(1):dt:tTarget(end); % oversample to ensure that the algorithm conver
 modelFun1 = @SEIQRDP_for_fitting; % transform a nested function into anonymous function
 
 % call Lsqcurvefit
-[Coeff,~,residual,~,~,~,jacobian] = lsqcurvefit(@(para,t) modelFun1(para,t),...
+[Coeff,~,residual,~,~,~,jacobian] = lsqcurvefit( @(para,t) modelFun1(para,t),...
     guess,tTarget(:)',input,zeros(1,numel(guess)),[2 2 2 2 1 2 1 2],options);
 
 

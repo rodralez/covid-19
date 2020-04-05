@@ -66,9 +66,8 @@ modelFun = @(Y,A,F) A*Y + F;
 dt = median(diff(t));
 % ODE resolution
 
-lambda = lambda0(1)*(1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
-kappa = kappa0(1)*exp(-kappa0(2).*t); % I use these functions for illustrative purpose only
-
+lambda = lambda0(1) * (1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
+kappa = kappa0(1) * exp(-kappa0(2).*t); % I use these functions for illustrative purpose only
 
 for ii=1:N-1
     A = getA(alpha,gamma,delta,lambda(ii),kappa(ii));

@@ -72,7 +72,7 @@ source = 'offline' ;
 % FORECAST = 4; % DAYS TO FORECAST 
 
 FIT_UNTIL =  datenum(2020, 4, 4);
-FORECAST = 7; % DAYS TO FORECAST 
+FORECAST = 9; % DAYS TO FORECAST 
 
 %% FIND COUNTRY
 
@@ -333,7 +333,7 @@ tl =  title(title_srt);
 text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ... 
         c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
 
-annotation('textbox', [0.36, 0.745, 0.1, 0.1], 'string', text_box, ...
+annotation('textbox', [0.36, 0.755, 0.1, 0.1], 'string', text_box, ...
     'LineStyle','-',...
     'FontSize', font_legend,...
     'FontName','Arial');
@@ -366,7 +366,7 @@ for i = size(Recovered, 2)-B: 2 : size(Recovered, 2)
 end
 
 for i = size(Deaths, 2)-B: 2 : size(Deaths, 2)
-    text( time(i)+delay, Deaths(i)+py, sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+    text( time(i)+delay/2, Deaths(i)+py/2, sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
 end
 
 
@@ -383,7 +383,7 @@ for i = 1 : 2 : size(r_fore_pt, 2)
 end
 
 for i = 1 : 2 : size(d_fore_pt, 2)
-    text(time_fore_pt(i)+delay, d_fore_pt(i)+py, sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+    text(time_fore_pt(i)+delay/2, d_fore_pt(i)+py/2, sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
 end
 %--------------------------------------------------------------------------
 
