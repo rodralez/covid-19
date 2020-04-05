@@ -55,14 +55,6 @@ Country = 'Argentina';
 % Country = 'China';
 % Province = 'Hubei';
 
-%% FITTIN INTERVAL
-% 
-% FIT_UNTIL =  datenum(2020, 3, 31);
-% FORECAST = 4; % DAYS TO FORECAST 
-
-FIT_UNTIL =  datenum(2020, 4, 3);
-FORECAST = 7; % DAYS TO FORECAST 
-
 %% SOURCE
 
 % source = 'online' ;
@@ -72,6 +64,13 @@ source = 'offline' ;
 
 % [tableConfirmed,tableDeaths,time] = get_covid_global_hopkins( source );
 
+%% FITTIN INTERVAL
+% 
+% FIT_UNTIL =  datenum(2020, 3, 31);
+% FORECAST = 4; % DAYS TO FORECAST 
+
+FIT_UNTIL =  datenum(2020, 4, 4);
+FORECAST = 7; % DAYS TO FORECAST 
 
 %% FIND COUNTRY
 
