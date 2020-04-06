@@ -7,12 +7,12 @@
 % Version: 001
 % Date:    2020/04/02
 % Author:  Rodrigo Gonzalez <rodralez@frm.utn.edu.ar>
-% URL:     https://github.com/rodralez/covid-19 
+% URL:     https://github.com/rodralez/covid-19
 %
-% The fitting is here more challenging than in Example 1 because the term 
-% "Confirmed patient" used in the database does not precise whether they have 
-% been quarantined or not. In a previous version of the submision (version <1.5) 
-% , the infectious cases were erroneously used instead of the quarantined cases. 
+% The fitting is here more challenging than in Example 1 because the term
+% "Confirmed patient" used in the database does not precise whether they have
+% been quarantined or not. In a previous version of the submision (version <1.5)
+% , the infectious cases were erroneously used instead of the quarantined cases.
 
 clear
 close all
@@ -23,34 +23,34 @@ addpath ./num2sip
 %% Cases
 
 % S(t): susceptible cases,
-% P(t): insusceptible cases, 
+% P(t): insusceptible cases,
 % E(t): exposed cases(infected but not yet be infectious, in a latent period),
 % I(t): infectious cases(with infectious capacity and not yet be quarantined),
 % Q(t): quarantinedcases(confirmed and infected),
-% R(t): recovered cases and 
+% R(t): recovered cases and
 % D(t): % closed cases(or death
 
 %% Rates
 
-% alpha: protection rate, 
-% beta: infection rate, 
-% gamma: average latent time, 
-% delta: average quarantine time, 
-% lambda: cure rate, and 
+% alpha: protection rate,
+% beta: infection rate,
+% gamma: average latent time,
+% delta: average quarantine time,
+% lambda: cure rate, and
 % kappa: mortalityrate, separately
 
 %% COUNTRY
 
 Province = '';
+Country = 'Argentina';
+% Country = 'Spain';
+% Country = 'Italy';
 % Country = 'Germany';
 % Country = 'Brazil';
 % Country = 'Ecuador';
 % Country = 'Chile';
 % Country = 'Turkey';
-% Country = 'Spain';
-% Country = 'Italy';
 % Country = 'France';
-Country = 'Argentina';
 % Country = 'Singapore';
 % Country = 'Korea, South';
 
@@ -67,25 +67,29 @@ source = 'offline' ;
 % [tableConfirmed,tableDeaths,time] = get_covid_global_hopkins( source );
 
 %% FITTIN INTERVAL
-% 
-% FIT_UNTIL =  datenum(2020, 3, 31);
-% FORECAST = 4; % DAYS TO FORECAST 
 
-FIT_UNTIL =  datenum(2020, 4, 4);
-FORECAST = 9; % DAYS TO FORECAST 
+% MODEL_EVAL = 'ON';
+if (~exist('MODEL_EVAL','var')),  MODEL_EVAL  = 'OFF'; end
+
+% FIT_UNTIL =  datenum(2020, 3, 28);
+% FORECAST = 7; % DAYS TO FORECAST
+% DAYS_BACK = 5;
+    
+FIT_UNTIL =  datenum(2020, 4, 5);
+FORECAST = 7; % DAYS TO FORECAST
 
 %% FIND COUNTRY
 
 try
     indC = find( contains(  tableConfirmed.CountryRegion, Country) == 1 );
     indC = indC( ismissing( tableConfirmed.ProvinceState(indC), Province) );
-
+    
     % Population
-    Npop = tableConfirmed.Population (indC); 
- 
+    Npop = tableConfirmed.Population (indC);
+    
     indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
     indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
-   
+    
     indD = find(contains(   tableDeaths.CountryRegion, Country)==1);
     indD = indD( ismissing( tableConfirmed.ProvinceState(indD), Province) );
     
@@ -98,12 +102,12 @@ catch exception
     indC = find([searchLoc{:}]==1);
     
     searchLoc = strfind(tableConfirmed.ProvinceState,Country);
-    indD = find([searchLoc{:}]==1); 
+    indD = find([searchLoc{:}]==1);
 end
 
 if ( isempty(indR) & isempty(indC) & isempty(indD))
     
-    error('%s was not found in COVID data!', Country)    
+    error('%s was not found in COVID data!', Country)
     
 end
 
@@ -133,12 +137,12 @@ E0 = Confirmed(1)  ; % Initial number of exposed cases. Unknown but unlikely to 
 I0 = Confirmed(1)  ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
 guess.LT = 5; % 1-14 days, latent time in days, incubation period, gamma^(-1)
-guess.QT = 5; % 2 weeks, quarantine time in days, recovery time, infectious period, delta^(-1)
+guess.QT = 6; % 2 weeks, quarantine time in days, recovery time, infectious period, delta^(-1)
 
 % Definition of the first estimates for the parameters
 guess.alpha = 1.0; % protection rate
 guess.beta  = 1.0; % Infection rate
-        
+
 guess.lambda = [0.5, 0.1]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
 
@@ -216,6 +220,8 @@ fprintf( ' %s \n', kappa_str );
 %% PLOT
 
 %--------------------------------------------------------------------------
+% COLORS
+%--------------------------------------------------------------------------
 blue = [0, 0.4470, 0.7410];
 orange = [0.8500, 0.3250, 0.0980];
 yellow = [0.9290, 0.6940, 0.1250] ;
@@ -225,77 +231,74 @@ blue_light = [0.3010, 0.7450, 0.9330] ;
 gray = ones(1,3) * 0.5;
 red_dark =  [0.6350, 0.0780, 0.1840] ;
 
+%--------------------------------------------------------------------------
+% FONT SIZE, LINE WIDTH, POINT WIDTH
+%--------------------------------------------------------------------------
+
 font_title = 30;
 font_label = 25;
 font_tick  = 20;
 font_legend = 16;
+font_point = 13;
 
-font_point = 14;
 line_width = 2.5;
 line_width_pt= 2;
 mks = 9;
 
 %--------------------------------------------------------------------------
+% VECTOR INDEX FOR FIGURE
+%--------------------------------------------------------------------------
 
-time_fit  = time_sim (time_sim <= time(tdx));
-time_fore = time_sim (time_sim > time(tdx));
+fodx = time_sim > time( tdx );
+fopx = contains( cellstr( datestr( time_sim ) ), '00:00:00') & fodx';
 
-q_fit  = Q1(time_sim <= time(tdx));
-q_fore = Q1(time_sim > time(tdx));
-
-i_fit  = I1(time_sim <= time(tdx)) + q_fit;
-i_fore = I1(time_sim > time(tdx))  + q_fore;
-
-r_fit  = R1(time_sim <= time(tdx));
-r_fore = R1(time_sim > time(tdx));
-
-d_fit  = D1(time_sim <= time(tdx));
-d_fore = D1(time_sim > time(tdx));
-
-c_fit = q_fit + r_fit + d_fit;
-c_fore = q_fore + r_fore + d_fore;
-
-ldx = contains( cellstr( datestr(time_fore) ), '00:00:00');
-time_fore_pt = time_fore( ldx );
-c_fore_pt = c_fore( ldx );
-q_fore_pt = q_fore( ldx );
-r_fore_pt = r_fore( ldx );
-d_fore_pt = d_fore( ldx );
+if strcmp (MODEL_EVAL, 'OFF')
+    
+    fidx = time_sim <= time(tdx);
+    rdx = time == time;
+else
+    fidx = time_sim >= time(tdx-DAYS_BACK) & time_sim <= time(tdx) ;
+    rdx = time >= time(tdx-DAYS_BACK);
+end
 
 %--------------------------------------------------------------------------
 
 figure
 
-q1 = semilogy(time_fit,  q_fit,  'color', red_dark, 'LineWidth', line_width);
+%--------------------------------------------------------------------------
+% FITING, LINES
+%--------------------------------------------------------------------------
+
+q1 = semilogy(time_sim (fidx), Q1 (fidx),  'color', red_dark, 'LineWidth', line_width);
 hold on
-%      semilogy(time_fore, q_fore, 'color', red_dark, 'LineWidth', line_width, 'LineStyle', '--');
 
-r1 = semilogy(time_fit,  r_fit,  'color', blue, 'LineWidth', line_width);
-%      semilogy(time_fore, r_fore, 'color', blue, 'LineWidth', line_width, 'LineStyle', '--');
+r1 = semilogy(time_sim (fidx), R1 (fidx),  'color', blue, 'LineWidth', line_width);
 
-d1 = semilogy(time_fit,  d_fit,  'k', 'LineWidth', line_width);
-%      semilogy(time_fore, d_fore, 'k', 'LineWidth', line_width, 'LineStyle', '--');
+d1 = semilogy(time_sim (fidx), D1 (fidx),  'k', 'LineWidth', line_width);
 
-c1 = semilogy(time_fit,  c_fit,  'color', green, 'LineWidth', line_width);
-%      semilogy(time_fore, c_fore, 'color', green, 'LineWidth', line_width, 'LineStyle', '--');
+c1 = semilogy(time_sim (fidx), C1 (fidx),  'color', green, 'LineWidth', line_width);
 
-i1 = semilogy(time_fit,  i_fit,  'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
-     semilogy(time_fore, i_fore, 'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
-     
-cp = semilogy(time_fore_pt, c_fore_pt, 'color', green, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
-qp = semilogy(time_fore_pt, q_fore_pt, 'color', red_dark, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
-rp = semilogy(time_fore_pt, r_fore_pt, 'color', blue, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
-dp = semilogy(time_fore_pt, d_fore_pt, 'color', 'black', 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks); 
+if strcmp (MODEL_EVAL, 'OFF')
+    
+    i1 = semilogy(time_sim (fidx), Q1(fidx) + I1 (fidx),  'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
+    semilogy(time_sim (fodx), Q1(fodx) + I1 (fodx), 'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
+end
 
-cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);     
-qr = semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
-rr = semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
-dr = semilogy(time, Deaths,'ko', 'LineWidth', line_width);
+%--------------------------------------------------------------------------
 
-% l1_fit = line ([time(1) time(1)], [0 infected_peak], 'color', blue, 'linewidth', 2, 'LineStyle', '--');
-% l2_fit = line ([time(DAYS) time(DAYS)], [0 infected_peak ], 'color', blue, 'linewidth', 2, 'LineStyle', '--');
-% l1_fore = line ([time(DAYS+1) time(DAYS+1)], [0 infected_peak], 'color', orange, 'linewidth', 2, 'LineStyle', '--');
-% l2_fore = line ([time(DAYS+FORECAST) time(DAYS+FORECAST)], [0 infected_peak ], 'color', orange, 'linewidth', 2, 'LineStyle', '--');
+%--------------------------------------------------------------------------
+% FORECASTING, POINTS
+%--------------------------------------------------------------------------
+
+cp = semilogy(time_sim (fopx), C1(fopx), 'color', green, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
+qp = semilogy(time_sim (fopx), Q1(fopx), 'color', red_dark, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
+rp = semilogy(time_sim (fopx), R1(fopx), 'color', blue, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
+dp = semilogy(time_sim (fopx), D1(fopx), 'color', 'black', 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
+
+cr = semilogy(time(rdx), Confirmed(rdx), 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
+qr = semilogy(time(rdx), Active(rdx), 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
+rr = semilogy(time(rdx), Recovered(rdx),'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
+dr = semilogy(time(rdx), Deaths(rdx),'ko', 'LineWidth', line_width);
 
 grid on
 
@@ -308,105 +311,190 @@ set(gcf,'color','w')
 set(gca,'yscale','lin')
 % set(gca,'yscale','log')
 
-xlim([time_sim(1) time_sim(end) ])
+time_lim = time_sim;
+xlim([time_lim(1) time_lim(end) ])
+% xlim([time_sim(1) time_sim(end) ])
 
-set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):2:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
+set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time_lim(1):2:time_lim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
 
 %--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % TITLE
 %--------------------------------------------------------------------------
 
-date_str = datestr(time_fit(end));
+date_str = datestr(time(tdx));
 
-if (strcmp(Province, ''))
-    title_srt = sprintf('%s, GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Country, DAYS, FORECAST, date_str(1:11) );
+if strcmp (MODEL_EVAL, 'OFF')
+    
+    if (strcmp(Province, ''))
+        
+        title_srt = sprintf('%s, GeSEIR model forecasting. Fitted with %d days,\n forecasted %d days from %s', Country, DAYS, FORECAST, date_str(1:11) );
+    else
+        title_srt = sprintf('%s (%s), GeSEIR model forecasting. Fitted with %d days,\n forecasted %d days from %s', Province, Country, DAYS, FORECAST, date_str(1:11) );
+    end
+    
 else
-    title_srt = sprintf('%s (%s), GeSEIR model is fitted with %d days,\n forecasted %d days from %s', Province, Country, DAYS, FORECAST, date_str(1:11) );
+    
+    if (strcmp(Province, ''))
+        
+        title_srt = sprintf('%s, GeSEIR model evaluation. Fitted with %d days,\n forecasted %d days from %s', Country, DAYS, FORECAST, date_str(1:11) );
+    else
+        title_srt = sprintf('%s (%s), GeSEIR model evaluation. Fitted with %d days,\n forecasted %d days from %s', Province, Country, DAYS, FORECAST, date_str(1:11) );
+    end
+    
+    
 end
 
 tl =  title(title_srt);
 
-
-% TEXT BOX
 %--------------------------------------------------------------------------
-text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ... 
-        c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
-
-annotation('textbox', [0.36, 0.755, 0.1, 0.1], 'string', text_box, ...
-    'LineStyle','-',...
-    'FontSize', font_legend,...
-    'FontName','Arial');
-%     'FontWeight','bold',...
+% Points with values
 %--------------------------------------------------------------------------
 
-% Points
-%--------------------------------------------------------------------------
-
-semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);     
-semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
-semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks); 
+semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
+semilogy(time, Active, 'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
+semilogy(time, Recovered,'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
 semilogy(time, Deaths,'ko', 'LineWidth', line_width);
 
+time_fore_pt = time_sim (fopx);
+c_fore_pt = C1 (fopx);
+q_fore_pt = Q1 (fopx);
+i_fore_pt = I1 (fopx);
+r_fore_pt = R1 (fopx);
+d_fore_pt = D1 (fopx);
 
-py = max(c_fore_pt)/14;
 B = 5;
 delay = -1/2;
 
-for i = size(Active, 2)-B : 2 : size(Active, 2)
-    text( time(i)+delay , Active(i) + py, sprintf('%s', num2sip( Active(i) , 3)), 'FontSize',  font_point, 'color', red_dark ) ;
+if strcmp (MODEL_EVAL, 'OFF')
+
+    py = max(q_fore_pt+i_fore_pt) / 20;
+    
+    for i = size(Active, 2)-B : 2 : size(Active, 2)
+        text( time(i)+delay , Active(i) + py, sprintf('%s', num2sip( Active(i) , 3)), 'FontSize',  font_point, 'color', red_dark ) ;
+    end
+    
+    for i = size(Confirmed, 2)-B: 2 :size(Confirmed, 2)
+        text( time(i)+delay, Confirmed(i) + py, sprintf('%s', num2sip(Confirmed(i) , 3)), 'FontSize',  font_point, 'color', green );
+    end
+    
+    for i = size(Recovered, 2)-B: 2 : size(Recovered, 2)
+        text( time(i)+delay, Recovered(i)+py, sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
+    end
+    
+    for i = size(Deaths, 2)-B: 2 : size(Deaths, 2)
+        text( time(i)+delay/2, Deaths(i)+py, sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+    end
+    
+    
+    for i = 1 : 2 : size(c_fore_pt, 2)
+        text( time_fore_pt(i)+delay, c_fore_pt(i)+py, sprintf('%s', num2sip(round( c_fore_pt(i) ) , 3)), 'FontSize',  font_point, 'Color', gray);
+    end
+    
+    for i = 1 : 2 : size(q_fore_pt, 2)
+        text( time_fore_pt(i)+delay, q_fore_pt(i)+py, sprintf('%s', num2sip(round( q_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+    end
+    
+    for i = 1 : 2 : size(r_fore_pt, 2)
+        text(time_fore_pt(i)+delay, r_fore_pt(i)+py, sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+    end
+    
+    for i = 1 : 2 : size(d_fore_pt, 2)
+        text(time_fore_pt(i)+delay/2, d_fore_pt(i)+py, sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
+    end
+    
+else
+    %--------------------------------------------------------------------------
+    % Points with errors
+    %--------------------------------------------------------------------------
+    
+    py = max(c_fore_pt) / 20;
+    
+    for i = 1 : 2 : size(q_fore_pt, 2)
+        
+        error = (round(q_fore_pt(i)) - Active(tdx+i)) / Active(tdx+i) * 100;
+        
+        text( time_fore_pt(i)+delay, q_fore_pt(i)+py , sprintf('%.2f%%',  error) , 'FontSize',  font_point, 'color', red_dark )  ;
+    end
+    
+    for i = 1 : 2 : size(c_fore_pt, 2)
+        
+        error = (round(c_fore_pt(i)) - Confirmed(tdx+i)) / Confirmed(tdx+i) * 100;
+        
+        text( time_fore_pt(i)+delay, c_fore_pt(i)+py , sprintf('%.2f%%',  error) , 'FontSize',  font_point, 'color', green );
+    end
+    
+    for i = 1 : 2 : size(r_fore_pt, 2)
+        
+        error = (round(r_fore_pt(i)) - Recovered(tdx+i)) / Recovered(tdx+i) * 100;
+        
+        text( time_fore_pt(i)+delay, r_fore_pt(i)+py , sprintf('%.2f%%',  error) , 'FontSize',  font_point, 'color', blue );
+    end
+    
+    for i = 1 : 2 : size(d_fore_pt, 2)
+        
+        error = (round(d_fore_pt(i)) - Deaths(tdx+i)) / Deaths(tdx+i) * 100;
+        
+        text( time_fore_pt(i)+delay/2, d_fore_pt(i)-py*2/3 , sprintf('%.2f%%',  error) , 'FontSize',  font_point, 'color', 'black' );
+    end
+    
 end
 
-for i = size(Confirmed, 2)-B: 2 :size(Confirmed, 2)
-    text( time(i)+delay, Confirmed(i) + py, sprintf('%s', num2sip(Confirmed(i) , 3)), 'FontSize',  font_point, 'color', green );
-end
-
-for i = size(Recovered, 2)-B: 2 : size(Recovered, 2)
-    text( time(i)+delay, Recovered(i)+py, sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
-end
-
-for i = size(Deaths, 2)-B: 2 : size(Deaths, 2)
-    text( time(i)+delay/2, Deaths(i)+py/2, sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
-end
-
-
-for i = 1 : 2 : size(c_fore_pt, 2)
-    text( time_fore_pt(i)+delay, c_fore_pt(i)+py, sprintf('%s', num2sip(round( c_fore_pt(i) ) , 3)), 'FontSize',  font_point, 'Color', gray);
-end
-
-for i = 1 : 2 : size(q_fore_pt, 2)
-    text( time_fore_pt(i)+delay, q_fore_pt(i)+py, sprintf('%s', num2sip(round( q_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
-end
-
-for i = 1 : 2 : size(r_fore_pt, 2)
-    text(time_fore_pt(i)+delay, r_fore_pt(i)+py, sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
-end
-
-for i = 1 : 2 : size(d_fore_pt, 2)
-    text(time_fore_pt(i)+delay/2, d_fore_pt(i)+py/2, sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', gray);
-end
 %--------------------------------------------------------------------------
 
 % LEGEND
-%-------------------------------------------------------------------------- 
-leg = { 'Confirmed (fitted)', 'Active (fitted)', ...
+%--------------------------------------------------------------------------
+
+if strcmp (MODEL_EVAL, 'OFF')
+    leg = { 'Confirmed (fitted)', 'Active (fitted)', ...
         'Recoveries (fitted)','Deaths (fitted)',...
-        'Active + Potential Infected', ... 
-        'Confirmed (reported)', 'Active (reported)', ... 
+        'Active + Potential Infected', ...
+        'Confirmed (reported)', 'Active (reported)', ...
         'Recoveries (reported)','Deaths (reported)'};
 
-ll = legend([c1, q1, r1, d1, i1, cr, qr, rr, dr], leg{:}, 'Location','NorthWest'); % 'Country','SouthWest'
+    ll = legend([c1, q1, r1, d1, i1, cr, qr, rr, dr], leg{:}, 'Location','NorthWest'); 
+else
+    leg = { 'Confirmed (fitted)', 'Active (fitted)', ...
+    'Recoveries (fitted)','Deaths (fitted)',...
+%     'Active + Potential Infected', ...
+    'Confirmed (reported)', 'Active (reported)', ...
+    'Recoveries (reported)','Deaths (reported)'};
 
+    ll = legend([c1, q1, r1, d1, cr, qr, rr, dr], leg{:}, 'Location','NorthWest'); 
+end
+
+%--------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+% TEXT BOX
+%--------------------------------------------------------------------------
+
+text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ...
+    c_fore_str, q_fore_str, r_fore_str, d_fore_str, i_fore_str, doub_str);
+
+al = annotation('textbox', [0.36, 0.755, 0.1, 0.1], 'string', text_box, ...
+    'LineStyle','-',...
+    'FontSize', font_legend,...
+    'FontName','Arial', ... 
+    'FaceAlpha', 0.5, ... 
+    'BackgroundColor', 'white');
+%     'FontWeight','bold',...
 %--------------------------------------------------------------------------
 
 set(tl,'FontSize', font_title);
 set(xl,'FontSize', font_label);
 set(yl,'FontSize', font_label);
 set(ll,'FontSize', font_legend);
+set(al,'FontSize', font_legend);
 
 %% SAVE FIGURE TO PNG FILE
 
-file_name = sprintf('%s_covid-19_fit_forecast_%s', Country, datestr( FIT_UNTIL ) );
+if strcmp (MODEL_EVAL, 'OFF')
+    file_name = sprintf('%s_covid-19_fit_forecast_%s', Country, datestr( FIT_UNTIL ) );
+else
+    file_name = sprintf('%s_covid-19_fit_forecast_eval_%s', Country, datestr( FIT_UNTIL ) );
+end
 
 file_str = sprintf('./png/%s.png', file_name );
 
@@ -417,55 +505,74 @@ saveas(gcf,file_str)
 
 %% SAVE DATA TO CSV FILE
 
-tt = [time_fit time_fore]';
-qq = [q_fit q_fore]';
-ii = [i_fit i_fore]';
-rr = [r_fit r_fore]';
-dd = [d_fit d_fore]';
+%--------------------------------------------------------------------------
+% FITTING AND FORECASTING
+%--------------------------------------------------------------------------
 
 file_str = sprintf('./csv/%s.csv', file_name );
 
 fid = fopen(file_str, 'w');
-fprintf(fid, '%s, %s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths', 'Infected') ; % Print the time string
+fprintf(fid, '%s, %s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths', 'Active+Infected') ; % Print the time string
 
-for idx = 1:size(qq, 1)  % Loop through each time/value row size(qq, 1)
+for idx = 1:size(time_sim, 2)  % Loop through each time/value row size(qq, 1)
     
-   fprintf(fid, '%s,', datestr ( tt(idx,:) , 31 ) ) ; % date
-   fprintf(fid, '%12.5f,', qq(idx) ) ; % active
-   fprintf(fid, '%12.5f,', rr(idx) ) ; % active
-   fprintf(fid, '%12.5f,', dd(idx) ) ; % active
-   fprintf(fid, '%12.5f,', ii(idx) ) ; % active
-   fprintf(fid, '\n' ) ; % active
+    fprintf(fid, '%s,', datestr ( time_sim(:, idx) , 31 ) ) ; % date
+    fprintf(fid, '%12.5f,', Q1(idx) ) ; % active
+    fprintf(fid, '%12.5f,', R1(idx) ) ; % active
+    fprintf(fid, '%12.5f,', D1(idx) ) ; % active
+    fprintf(fid, '%12.5f,', Q1(idx)+I1(idx) ) ; % active
+    fprintf(fid, '\n' ) ; % active
 end
 
 fclose(fid) ;
 
-cp_command = sprintf('cp %s ./csv/%s_covid-19_fit_forecast_lastest.csv', file_str, Country );
-ret = system(cp_command);
-if ret ~= 0
-    error('cp error!');
+%--------------------------------------------------------------------------
+% FITTING AND FORECASTING, LASTEST
+%--------------------------------------------------------------------------
+
+if strcmp (MODEL_EVAL, 'OFF')
+    
+    cp_command = sprintf('cp %s ./csv/%s_covid-19_fit_forecast_lastest.csv', file_str, Country );
+    ret = system(cp_command);
+    if ret ~= 0
+        error('cp error!');
+    end
+    
 end
 
 %--------------------------------------------------------------------------
+% REPORTED
+%--------------------------------------------------------------------------
 
-file_name = sprintf('%s_covid-19_reported_%s', Country, datestr( FIT_UNTIL ) );
+if strcmp (MODEL_EVAL, 'OFF')
+    
+    file_name = sprintf('%s_covid-19_reported_%s', Country, datestr( FIT_UNTIL ) );
+else
+    file_name = sprintf('%s_covid-19_reported_eval_%s', Country, datestr( FIT_UNTIL ) );
+end
 
 file_str = sprintf('./csv/%s.csv', file_name);
 
 fid = fopen(file_str, 'w');
 fprintf(fid, '%s, %s, %s, %s,\n', 'Date', 'Active', 'Recoveries', 'Deaths') ; % Print the time string
 
-for idx = 1:size(time(1:tdx), 2)  % Loop through each time/value row size(qq, 1)
+for idx = 1:size(time, 2)  % Loop through each time/value row size(qq, 1)
     
-   fprintf(fid, '%s,',     datestr ( time(1, idx) , 31 ) ) ; % date
-   fprintf(fid, '%12.5f,', Active(idx) ) ; % active
-   fprintf(fid, '%12.5f,', Recovered(idx) ) ; % active
-   fprintf(fid, '%12.5f,', Deaths(idx) ) ; % active
-   fprintf(fid, '\n' ) ; % active
+    fprintf(fid, '%s,',     datestr ( time(1, idx) , 31 ) ) ; % date
+    fprintf(fid, '%12.5f,', Active(idx) ) ; % active
+    fprintf(fid, '%12.5f,', Recovered(idx) ) ; % active
+    fprintf(fid, '%12.5f,', Deaths(idx) ) ; % active
+    fprintf(fid, '\n' ) ; % active
 end
 
-cp_command = sprintf('cp %s ./csv/%s_covid-19_reported_lastest.csv', file_str, Country );
-ret = system(cp_command);
-if ret ~= 0
-    error('cp error!');
+%--------------------------------------------------------------------------
+% REPORTED, LASTEST
+%--------------------------------------------------------------------------
+
+if strcmp (MODEL_EVAL, 'OFF')
+    cp_command = sprintf('cp %s ./csv/%s_covid-19_reported_lastest.csv', file_str, Country );
+    ret = system(cp_command);
+    if ret ~= 0
+        error('cp error!');
+    end
 end
