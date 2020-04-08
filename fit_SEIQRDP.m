@@ -44,9 +44,11 @@ p = inputParser();
 p.CaseSensitive = false;
 p.addOptional('tolX',1e-3);  %  option for optimset
 p.addOptional('tolFun',1e-3);  %  option for optimset
-p.addOptional('Display','iter'); % Display option for optimset
-% p.addOptional('Display','off'); % Display option for optimset
-p.addOptional('dt', 0.1); % time step for the fitting
+
+% p.addOptional('Display','iter'); % Display option for optimset
+p.addOptional('Display','off'); % Display option for optimset
+
+p.addOptional('dt', 1/24); % time step for the fitting
 p.parse(varargin{:});
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
