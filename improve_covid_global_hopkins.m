@@ -1,4 +1,4 @@
-function tableData = improve_covid_global_hopkins( tableData )
+function tableData = improve_covid_global_hopkins( tableData, filename_time )
 % improve_covid_global_hopkins
 % get_covid_global_hopkins() sorts and add data to the  global data from the COVID-19 epidemy from the
 % John Hopkins university [1]. e.
@@ -69,19 +69,19 @@ tablePop( ~ismember (tablePop.Variant, 'Medium') , :)=[];
 for idx = 1:size(tableData, 1)
     
     country = tableData.CountryRegion( idx );
-
+    
     % Special cases
     if (strcmp( country, 'US')), country = 'United States of America'; end
     if (strcmp( country, 'Vietnam')), country = 'Viet Nam'; end
     if (strcmp( country, 'Korea, South')), country = 'Republic of Korea'; end
     
-    ldx = strcmp(  tablePop.Location, country );    
-    NPop = tablePop.PopTotal ( ldx ) * 1000;   
+    ldx = strcmp(  tablePop.Location, country );
+    NPop = tablePop.PopTotal ( ldx ) * 1000;
     
-    if (~ any(ldx))        
-    
+    if (~ any(ldx))
+        
         ldx = contains(  tablePop.Location, country );
-        NPop = tablePop.PopTotal ( ldx ) * 1000;   
+        NPop = tablePop.PopTotal ( ldx ) * 1000;
         
         if (~ any(ldx))
             
@@ -92,7 +92,22 @@ for idx = 1:size(tableData, 1)
     tableData.Population (idx) = NPop;
 end
 
-%% 
+%%
 
 tableData = sortrows(tableData, 2);
+
+%% CHANGE VariableNames WITH DATETIME
+
+fid = fopen(filename_time);
+time_str = textscan( fid, repmat('%s', 1, size(tableData , 2) + 1 ), 1, 'Delimiter',',');
+FIRST_DAY = datetime( [time_str{5}] ) + years(2000);
+fclose(fid);
+
+DAYS = size(time_str, 2) - 4;
+
+% Daytime cells
+for ddx = 1:DAYS
+    time_s = ['Day_',datestr(FIRST_DAY+ddx-1,'dd_mm_yy') ];
+    tableData.Properties.VariableNames(3+ddx) = { time_s };
+end
 

@@ -51,10 +51,11 @@ Province = '';
 Country = 'Argentina';
 % Country = 'Spain';
 % Country = 'Italy';
-% Country = 'Germany';
 % Country = 'Brazil';
-% Country = 'Ecuador';
 % Country = 'Chile';
+
+% Country = 'Ecuador';
+% Country = 'Germany';
 % Country = 'Turkey';
 % Country = 'France';
 % Country = 'Singapore';
@@ -65,26 +66,25 @@ Country = 'Argentina';
 
 %% SOURCE
 
-% source = 'online' ;
-source = 'offline' ;
+source = 'online' ;
+% source = 'offline' ;
 
 [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins( source, './hopkins/' );
 
-% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './hopkins/' );
-
+% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
 
 %% FITTIN INTERVAL
 
-MODEL_EVAL = 'ON';
-FIT_UNTIL =  datetime(2020, 4, 8);
-FIT_FROM  =  FIT_UNTIL - 14;
+% MODEL_EVAL = 'ON';
+% FIT_UNTIL =  datetime(2020, 4, 8);
+% FIT_FROM  =  FIT_UNTIL - 14;
 % FIT_FROM  =  datetime(2020, 3, 1);
 % 
 % FORECAST_DAYS = 7; % DAYS TO FORECAST
 
 % Argentina
-% FIT_UNTIL =  datetime(2020, 4, 9);
-% FIT_FROM  =  FIT_UNTIL - 15;
+FIT_UNTIL =  datetime(2020, 4, 10);
+FIT_FROM  =  FIT_UNTIL - 14;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
 FORECAST_DAYS = 15; % DAYS TO FORECAST
@@ -401,11 +401,11 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 1 : P : size(Recovered, 2)
-            text( time(i)+delay, Recovered(i)*hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
+            text( time(i)+delay, Recovered(i)/hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
         end
         
         for i = 1 : P : size(Deaths, 2)
-            text( time(i)+delay, Deaths(i)/hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+            text( time(i)+delay, Deaths(i)*hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
         end
         
         
@@ -414,17 +414,17 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 1 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, r_fore_pt(i)*hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
+            text(time_fore_pt(i)+delay, r_fore_pt(i)/hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
         end
         
         for i = 1 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, d_fore_pt(i)/hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+            text(time_fore_pt(i)+delay, d_fore_pt(i)*hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
         end
         
         % Print last vector element
         text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
-        text( time_fore_pt(end)+delay, r_fore_pt(end)*hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
-        text( time_fore_pt(end)+delay, d_fore_pt(end)/hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+        text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
+        text( time_fore_pt(end)+delay, d_fore_pt(end)*hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
     else
         %--------------------------------------------------------------------------
         % Points with errors percent labels
@@ -437,7 +437,7 @@ if strcmp( ITERATIVE, 'OFF' )
             if ( tfdx+i <= size (Active, 2))
                 
                 error = (round(q_fore_pt(i)) - Active(tfdx+i)) / Active(tfdx+i) * 100;
-                text( time_fore_pt(i)+delay, q_fore_pt(i)*1.5 , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', red_dark )  ;
+                text( time_fore_pt(i)+delay, q_fore_pt(i)*hght , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', red_dark )  ;
             end
         end
         
@@ -455,7 +455,7 @@ if strcmp( ITERATIVE, 'OFF' )
             if ( tfdx+i <= size (Recovered, 2))
                 
                 error = (round(r_fore_pt(i)) - Recovered(tfdx+i)) / Recovered(tfdx+i) * 100;
-                text( time_fore_pt(i)+delay, r_fore_pt(i)+r_fore_pt(i)*0.35 , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', blue );
+                text( time_fore_pt(i)+delay, r_fore_pt(i)*hght , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', blue );
             end
         end
         
@@ -464,7 +464,7 @@ if strcmp( ITERATIVE, 'OFF' )
             if ( tfdx+i <= size (Deaths, 2))
                 
                 error = (round(d_fore_pt(i)) - Deaths(tfdx+i)) / Deaths(tfdx+i) * 100;
-                text( time_fore_pt(i)+delay, d_fore_pt(i)-d_fore_pt(i)*0.35 , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', 'black' );
+                text( time_fore_pt(i)+delay, d_fore_pt(i)/hght , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', 'black' );
             end
         end
     end

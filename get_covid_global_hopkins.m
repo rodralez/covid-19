@@ -21,13 +21,11 @@ if nargin < 1
 end
 
 if ( strcmp (source, 'online'))
-    
-    %% Import the data
-    
+
     status = {'confirmed','deaths','recovered'};
-    
     server = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/';
-    %          https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/
+        
+    %% 
     
     for i=1:numel(status)
         
@@ -36,8 +34,7 @@ if ( strcmp (source, 'online'))
         url = [server,'time_series_covid19_',status{i},'_global.csv'];
         websave( filename, url );
         
-        opts = detectImportOptions(filename);
-        
+        opts = detectImportOptions(filename);        
         opts.VariableNames(1) = {'ProvinceState'};
         opts.VariableNames(2) = {'CountryRegion'};
         opts.VariableNames(3) = {'Population'};
@@ -52,24 +49,24 @@ if ( strcmp (source, 'online'))
             tableConfirmed = readtable(filename, opts);
             tableConfirmed = tableConfirmed(2:end,:); % First line is header and is descarted
             tableConfirmed.Long = []; % Long column is descarted
-            tableConfirmed = improve_covid_global_hopkins( tableConfirmed );
+            tableConfirmed = improve_covid_global_hopkins( tableConfirmed , filename );
             
         elseif strcmpi(status{i},'Deaths')
             tableDeaths = readtable(filename, opts);
             tableDeaths = tableDeaths(2:end,:); % First line is header and is descarted
             tableDeaths.Long = []; % Long column is descarted
-            tableDeaths = improve_covid_global_hopkins( tableDeaths );
+            tableDeaths = improve_covid_global_hopkins( tableDeaths , filename );
             
         elseif strcmpi(status{i},'Recovered')
             tableRecovered = readtable(filename, opts);
             tableRecovered = tableRecovered(2:end,:); % First line is header and is descarted
             tableRecovered.Long = []; % Long column is descarted
-            tableRecovered = improve_covid_global_hopkins( tableRecovered );
+            tableRecovered = improve_covid_global_hopkins( tableRecovered , filename );
         else
             error('Unknown status')
         end
     end
-    
+
     %% TIME
     
     fid = fopen(filename);
@@ -77,6 +74,8 @@ if ( strcmp (source, 'online'))
     time = datetime( [time_str{5:end}] ) + years(2000);
     fclose(fid);
     
+%% SAVE
+
     save tableConfirmed tableConfirmed
     save tableRecovered tableRecovered
     save tableDeaths tableDeaths
