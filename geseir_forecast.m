@@ -51,13 +51,13 @@ addpath ./num2sip
 
 Province = '';
 % Province = 'CABA';
-% Country = 'Argentina';
+Country = 'Argentina';
 % Country = 'Ecuador';
 % Country = 'Brazil';
 % Country = 'Chile';
 % Country = 'Uruguay';
 
-Country = 'United Kingdom';
+% Country = 'United Kingdom';
 % Country = 'Spain';
 % Country = 'Italy';
 % Country = 'US';
@@ -75,14 +75,14 @@ Country = 'United Kingdom';
 
 %% SOURCE
 
-% source = 'online' ;
-source = 'offline' ;
+source = 'online' ;
+% source = 'offline' ;
 
-[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
+% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
+
+[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
 
 % [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
-
-% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
 
 %% FITTIN INTERVAL
 
@@ -576,7 +576,7 @@ if strcmp( ITERATIVE, 'OFF' )
     if strcmp (MODEL_EVAL, 'OFF')
         file_name = sprintf('%s_covid-19_fit_forecast_%s', Country, datestr( FIT_UNTIL ) );
     else
-        file_name = sprintf('%s_covid-19_fit_forecast_eval_%s', Country, datestr( FIT_UNTIL ) );
+        file_name = sprintf('%s_covid-19_eval_%s', Country, datestr( FIT_UNTIL ) );
     end
     
     file_str = sprintf('./png/%s.png', file_name );
@@ -639,7 +639,7 @@ if strcmp( ITERATIVE, 'OFF' )
         
         file_name = sprintf('%s_covid-19_reported_%s', Country, datestr( FIT_UNTIL ) );
     else
-        file_name = sprintf('%s_covid-19_reported_eval_%s', Country, datestr( FIT_UNTIL ) );
+        file_name = sprintf('%s_covid-19_eval_reported_%s', Country, datestr( FIT_UNTIL ) );
     end
     
     file_str = sprintf('./csv/%s.csv', file_name);
