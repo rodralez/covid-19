@@ -48,8 +48,18 @@ guess_v = [guess.alpha,  guess.beta, 1/guess.LT, 1/guess.QT, guess.lambda,...
     guess.kappa];
 
 % Parameter estimation with the lsqcurvefit function
-[alpha1, beta1, gamma1, delta1, lambda1, kappa1, varargout] = ...
-    fit_SEIQRDP(Confirmed-Recovered-Deaths,Recovered,Deaths,Npop,E0,I0,time,guess_v);
+if ~isempty(Recovered)
+    
+    [alpha1, beta1, gamma1, delta1, lambda1, kappa1, varargout] = ...
+        fit_SEIQRDP(Confirmed-Recovered-Deaths,Recovered,Deaths,Npop,E0,I0,time,guess_v);
+    
+else
+    
+    [alpha1, beta1, gamma1, delta1, lambda1, kappa1, varargout] = ...
+        fit_SEIQRDP(Confirmed-Deaths,Recovered,Deaths,Npop,E0,I0,time,guess_v);
+end
+
+% fit_SEIQRDP(Confirmed-Deaths,[],Deaths,Npop,E0,I0,time,guess,'Display','off');
 
 param.alpha = alpha1;
 param.beta = beta1;

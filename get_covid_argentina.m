@@ -3,9 +3,8 @@ function [tableConfirmed_AR,tableDeaths_AR,tableRecovered_AR,time_AR] = get_covi
 % Based on E. Cheynet's work [2].
 %
 % References:
-% [1] https://github.com/cristianrohr/covid19ARgentina_stats/blob/master/data/
+% [1] https://github.com/SistemasMapache/Covid19arData/blob/master/CSV/Covid19arData%20-%20historico.csv
 % [2] https://github.com/ECheynet/SEIR
-% [3] https://raw.githubusercontent.com/SistemasMapache/Covid19arData/master/CSV/Covid19arData%20-%20historico.csv
 %
 % Version: 001
 % Date:    2020/04/01
@@ -44,9 +43,9 @@ if ( strcmp (source, 'online'))
     
     url = 'https://raw.githubusercontent.com/SistemasMapache/Covid19arData/master/CSV/Covid19arData - historico.csv';
     
-    name = 'dummy.csv';
+    name = 'Covid19arData - historico.csv';
     filename = [directory , name ];
-    websave( filename, url );
+%     websave( filename, url );
     
     opts = detectImportOptions(filename);
     

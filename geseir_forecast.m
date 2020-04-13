@@ -24,6 +24,8 @@ if strcmp( ITERATIVE, 'OFF' )
     if (~exist('ITERATIVE','var')),  ITERATIVE  = 'OFF'; end
 end
 
+if (~exist('ENGLISH','var')),    ENGLISH  = 'OFF'; end
+
 addpath ./num2sip
 
 %% Cases
@@ -48,28 +50,37 @@ addpath ./num2sip
 %% COUNTRY
 
 Province = '';
-Country = 'Argentina';
-% Country = 'Spain';
-% Country = 'Italy';
+% Province = 'CABA';
+% Country = 'Argentina';
+% Country = 'Ecuador';
 % Country = 'Brazil';
 % Country = 'Chile';
+% Country = 'Uruguay';
 
-% Country = 'Ecuador';
+Country = 'United Kingdom';
+% Country = 'Spain';
+% Country = 'Italy';
+% Country = 'US';
+
 % Country = 'Germany';
 % Country = 'Turkey';
 % Country = 'France';
+
 % Country = 'Singapore';
 % Country = 'Korea, South';
-
 % Country = 'China';
 % Province = 'Hubei';
 
+
+
 %% SOURCE
 
-source = 'online' ;
-% source = 'offline' ;
+% source = 'online' ;
+source = 'offline' ;
 
-[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins( source, './hopkins/' );
+[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
+
+% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
 
 % [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
 
@@ -83,7 +94,7 @@ source = 'online' ;
 % FORECAST_DAYS = 7; % DAYS TO FORECAST
 
 % Argentina
-FIT_UNTIL =  datetime(2020, 4, 10);
+FIT_UNTIL =  datetime(2020, 4, 12);
 FIT_FROM  =  FIT_UNTIL - 14;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
@@ -100,8 +111,12 @@ try
     % Population
     Npop = tableConfirmed.Population (indC);
     
-    indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
-    indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
+    if ~isempty(tableRecovered)    
+        indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
+        indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
+    else
+        indR = 0;
+    end
     
     indD = find(contains(   tableDeaths.CountryRegion, Country)==1);
     indD = indD( ismissing( tableConfirmed.ProvinceState(indD), Province) );
@@ -132,12 +147,16 @@ end
 % confirmed cases
 
 Confirmed = table2array(tableConfirmed(indC, 4:end));
-Recovered = table2array(tableRecovered(indR, 4:end));
+if ~isempty(tableRecovered)   
+    Recovered = table2array(tableRecovered(indR, 4:end));
+end
 Deaths    = table2array(tableDeaths(indD, 4:end));
 
 minNum = 50;
 time(Confirmed <= minNum)= [];
-Recovered(Confirmed <= minNum)=[];
+if ~isempty(tableRecovered)   
+    Recovered(Confirmed <= minNum)=[];
+end
 Deaths(Confirmed <= minNum)=[];
 Confirmed(Confirmed <= minNum)=[];
 
@@ -173,16 +192,21 @@ tfit = time >= FIT_FROM;
 tfit = time <= FIT_UNTIL & tfit;
 
 C0 = Confirmed(tfit);
-R0 = Recovered(tfit);
-D0 = Deaths(tfit);
 
 % Initial conditions
 E0 = C0(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = C0(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
-param_fit = my_fit_SEIQRDP(Confirmed(tfit), Recovered(tfit), Deaths(tfit), Npop, E0, I0, time(tfit), guess);
+if ~isempty(tableRecovered)   
+    
+    param_fit = my_fit_SEIQRDP(Confirmed(tfit), Recovered(tfit), Deaths(tfit), Npop, E0, I0, time(tfit), guess);
 
-Active = Confirmed - Recovered - Deaths;
+    Active = Confirmed - Recovered - Deaths;
+else
+    param_fit = my_fit_SEIQRDP(Confirmed(tfit), [], Deaths(tfit), Npop, E0, I0, time(tfit), guess);
+
+    Active = Confirmed - Recovered - Deaths;
+end
 
 FIT_DAYS = length(time(tfit));
 
@@ -192,6 +216,9 @@ FIT_DAYS = length(time(tfit));
 E0 = C0(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = C0(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 Q0 = C0(1) ;
+
+R0 = Recovered(tfit);
+D0 = Deaths(tfit);
 
 R0 = R0(1);
 D0 = D0(1);
@@ -210,8 +237,12 @@ C1 = Q1 + R1 + D1 ;
 
 %% DOUBLING ANALYSYS
 
-fdx = find ( Active >= Active(end)/2, 1, 'first');
-doubling = datenum ( time(end)- time(fdx) );
+fdx = find ( Q1 <= ceil( Q1(end) / 2 ), 1, 'last');
+doubling = round( datenum ( time_sim(end)- time_sim(fdx) ) );
+
+if isempty(doubling)
+    warning ('doubling is empty.')
+end
 
 %% PRINT
 
@@ -223,18 +254,29 @@ if strcmp( ITERATIVE, 'OFF' )
     fprintf(['Time series stop on ' ,datestr(time(end)),'\n'] );
     fprintf('Time series forecast %d days\n', FORECAST_DAYS );
     
-    model_str   = sprintf( 'GeSEIR predicts on %s:', datestr( time_sim(end) ) );
-    c_fore_str  = sprintf( '%d confirmed cases (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
-    q_fore_str  = sprintf( '%d active cases (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
-    r_fore_str  = sprintf( '%d recoveries (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
-    d_fore_str  = sprintf( '%d deaths (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
+    if strcmp (ENGLISH, 'ON')
+        
+        model_str   = sprintf( 'GeSEIR predicts on %s:', datestr( time_sim(end), 'dd/mm/yy' ) );
+        c_fore_str  = sprintf( '%d confirmed cases (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
+        q_fore_str  = sprintf( '%d active cases (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
+        r_fore_str  = sprintf( '%d recoveries (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
+        d_fore_str  = sprintf( '%d deaths (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
+        doub_str  = sprintf( 'Active cases are doubled in %d days', doubling );
+    else
+        model_str   = sprintf( 'GeSEIR proyecta para el %s:', datestr( time_sim(end), 'dd/mm/yy' ) );
+        c_fore_str  = sprintf( '%d casos confirmados (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
+        q_fore_str  = sprintf( '%d casos activos (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
+        r_fore_str  = sprintf( '%d recuperados (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
+        d_fore_str  = sprintf( '%d fallecidos (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
+        doub_str    = sprintf( 'Se duplican activos cada %d días', doubling );
+    end
     
     i_fore_str  = sprintf( '%d potential active cases', round( Q1(end) + I1(end) ) );
     
     Q_fore_str  = sprintf( 'Models predicts %d active cases on %s', round( (Q1(end)) ), datestr( time_sim(end) ) );
     N_fore_str  = sprintf( 'Models predicts new %d active cases on %s', round( (Q1(end)) - Active(end) ), datestr( time_sim(end) ) );
     I_fore_str  = sprintf( 'Models predicts %d potential infected on %s', round( Q1(end) + I1(end) ), datestr( time_sim(end) ) );
-    doub_str  = sprintf( 'Active cases are doubled in %d days', doubling );
+    
     % ro_str     = sprintf( 'Ro: %.2f', BRN );
     alpha_str   = sprintf( 'alpha : %.2f', param_fit.alpha );
     beta_str    = sprintf( 'beta: %.2f', param_fit.beta );
@@ -345,8 +387,13 @@ if strcmp( ITERATIVE, 'OFF' )
     % AXES PROPIETIES
     %--------------------------------------------------------------------------
     
-    yl = ylabel('Number of cases');
-    xl = xlabel('Time (days)');
+    if strcmp (ENGLISH, 'ON')
+        yl = ylabel('Number of cases');
+        xl = xlabel('Time (days)');
+    else
+        yl = ylabel('Número de casos');
+        xl = xlabel('Tiempo (días)');
+    end
     
     set(gcf,'color','w')
 %     set(gca,'yscale','lin')
@@ -363,24 +410,39 @@ if strcmp( ITERATIVE, 'OFF' )
     % TITLE
     %--------------------------------------------------------------------------
     
-    date_str = datestr(time(tfdx));
+    date_str = datestr(time(tfdx), 'dd/mm/yy');
     
     if (strcmp(Province, ''))
         title_country = Country;
     else
         title_country = [Province,' (',Country,')'];
     end
+       
+    if strcmp (ENGLISH, 'ON')
         
-    if strcmp (MODEL_EVAL, 'OFF')
-        title_type = 'GeSEIR model for COVID-19 forecasting';
-    else
-        title_type = 'GeSEIR model for COVID-19 evaluation';
-    end
- 
-    sub_title_srt = '\fontsize{20}\color{gray}\rmSource: Johns Hopkins CSSE.';
+        if strcmp (MODEL_EVAL, 'OFF')
+            title_type = 'GeSEIR model for COVID-19 forecasting';
+        else
+            title_type = 'GeSEIR model for COVID-19 evaluation';
+        end
+        
+        sub_title_srt = '\fontsize{20}\color{gray}\rmSource: Johns Hopkins CSSE.';
     
-    title_srt = sprintf('%s, %s.\nFitted with %d days, forecasted %d days from %s.', ... 
-        title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str(1:11) );
+        title_srt = sprintf('%s, %s.\nFitted with %d days, forecasted %d days from %s.', ... 
+            title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str );
+    else
+        
+        if strcmp (MODEL_EVAL, 'OFF')
+            title_type = 'Modelo GeSEIR para la predicción de COVID-19';
+        else
+            title_type = 'Modelo GeSEIR para la evaluación de COVID-19';
+        end
+        
+        sub_title_srt = '\fontsize{20}\color{gray}\rmFuente: Johns Hopkins CSSE.';
+    
+        title_srt = sprintf('%s, %s.\nAjuste con %d días, proyección de %d días desde %s.', ...  
+            title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str );    
+    end
  
     tl =  title( { title_srt ; sub_title_srt } );
     %--------------------------------------------------------------------------
@@ -401,38 +463,38 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 1 : P : size(Recovered, 2)
-            text( time(i)+delay, Recovered(i)/hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
+            text( time(i)+delay, Recovered(i)*hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
         end
         
         for i = 1 : P : size(Deaths, 2)
-            text( time(i)+delay, Deaths(i)*hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+            text( time(i)+delay, Deaths(i)/hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
         end
         
         
-        for i = 1 : P : size(time_fore_pt, 2)
+        for i = 2 : P : size(time_fore_pt, 2)
             text( time_fore_pt(i)+delay, q_fore_pt(i)*hght , sprintf('%s', num2sip(round( q_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
         end
         
-        for i = 1 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, r_fore_pt(i)/hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
+        for i = 2 : P : size(time_fore_pt, 2)
+            text(time_fore_pt(i)+delay, r_fore_pt(i)*hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
         end
         
-        for i = 1 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, d_fore_pt(i)*hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+        for i = 2 : P : size(time_fore_pt, 2)
+            text(time_fore_pt(i)+delay, d_fore_pt(i)/hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
         end
         
         % Print last vector element
         text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
-        text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
-        text( time_fore_pt(end)+delay, d_fore_pt(end)*hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+        text( time_fore_pt(end)+delay, r_fore_pt(end)*hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
+        text( time_fore_pt(end)+delay, d_fore_pt(end)/hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
     else
         %--------------------------------------------------------------------------
         % Points with errors percent labels
         %--------------------------------------------------------------------------
         
-        px = 2;
+        P = 1;
         
-        for i = 1 : px : size(q_fore_pt, 2)
+        for i = 1 : P : size(q_fore_pt, 2)
             
             if ( tfdx+i <= size (Active, 2))
                 
@@ -441,16 +503,7 @@ if strcmp( ITERATIVE, 'OFF' )
             end
         end
         
-%         for i = 1 : px: size(c_fore_pt, 2)
-%             
-%             if ( tfdx+i <= size (Confirmed, 2))
-%                 
-%                 error = (round(c_fore_pt(i)) - Confirmed(tfdx+i)) / Confirmed(tfdx+i) * 100;
-%                 text( time_fore_pt(i)+delay, c_fore_pt(i)+py , sprintf('%.2f%%',  error) , 'FontSize',  font_point, 'color', green );
-%             end
-%         end
-        
-        for i = 1 : px : size(r_fore_pt, 2)
+        for i = 1 : P : size(r_fore_pt, 2)
             
             if ( tfdx+i <= size (Recovered, 2))
                 
@@ -459,7 +512,7 @@ if strcmp( ITERATIVE, 'OFF' )
             end
         end
         
-        for i = 1 : px : size(d_fore_pt, 2)
+        for i = 1 : P : size(d_fore_pt, 2)
             
             if ( tfdx+i <= size (Deaths, 2))
                 
@@ -474,25 +527,36 @@ if strcmp( ITERATIVE, 'OFF' )
     % LEGEND
     %--------------------------------------------------------------------------
     
-    leg = { 
-        'Active (fitted)', ...
-        'Recoveries (fitted)',...
-        'Deaths (fitted)',...
-        'Active (reported)', ...
-        'Recoveries (reported)',...
-        'Deaths (reported)'};
+    if strcmp (ENGLISH, 'ON')
+        leg = {
+            'Active (fitted)', ...
+            'Recoveries (fitted)',...
+            'Deaths (fitted)',...
+            'Active (reported)', ...
+            'Recoveries (reported)',...
+            'Deaths (reported)'};
+    else
+        leg = {
+            'Activos (ajustado)', ...
+            'Recuperados (ajustado)',...
+            'Fallecidos (ajustado)',...
+            'Activos (reportados)', ...
+            'Recuperados (reportados)',...
+            'Fallecidos (reportados)'};
+    end
     
-    ll = legend([q1, r1, d1, qr, rr, dr], leg{:}, 'Location','SouthEast');
+    ll = legend( [q1, r1, d1, qr, rr, dr], leg{:}, 'Location','SouthEast' );
+    
     %--------------------------------------------------------------------------
     
     %--------------------------------------------------------------------------
     % TEXT BOX
     %--------------------------------------------------------------------------
     
-    text_box = sprintf('%s\n  * %s.\n  * %s.\n  * %s.\n%s.', model_str, ...
+    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
         q_fore_str, r_fore_str, d_fore_str, doub_str);
     
-    al = annotation('textbox', [0.455, 0.245, 0.1, 0.1], 'string', text_box, ...
+    al = annotation('textbox', [0.44, 0.24, 0.1, 0.1], 'string', text_box, ...
         'LineStyle','-',...
         'FontSize', font_legend,...
         'FontName','Arial', ...

@@ -1,11 +1,11 @@
 function [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = fit_SEIQRDP(Q,R,D,Npop,E0,I0,time,guess,varargin)
-% [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] =
-% fit_SEIQRDP(Q,R,D,Npop,E0,I0,time,guess,varargin) estimates the
+% [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = 
+% fit_SEIQRDP(Q,R,D,Npop,E0,I0,time,guess,varargin) estimates the 
 % parameters used in the SEIQRDP function, used to model the time-evolution
 % of an epidemic outbreak.
-%
+% 
 % Input
-%
+% 
 %   I: vector [1xN] of the target time-histories of the infectious cases
 %   R: vector [1xN] of the target time-histories of the recovered cases
 %   D: vector [1xN] of the target time-histories of the dead cases
@@ -19,9 +19,9 @@ function [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = fit_SEIQRDP(Q,R
 %       -tolX: tolerance  option for optimset
 %       -Display: Display option for optimset
 %       -dt: time step for the fitting function
-%
+% 
 % Output
-%
+% 
 %   alpha: scalar [1x1]: fitted protection rate
 %   beta: scalar [1x1]: fitted  infection rate
 %   gamma: scalar [1x1]: fitted  Inverse of the average latent time
@@ -32,9 +32,9 @@ function [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = fit_SEIQRDP(Q,R
 %       - residual
 %       - Jcobian
 %       - The function @SEIQRDP_for_fitting
-%
+% 
 % Author: E. Cheynet - UiB - last modified 24-03-2020
-%
+% 
 % see also SEIQRDP.m
 
 %%
@@ -42,15 +42,11 @@ function [alpha1,beta1,gamma1,delta1,Lambda1,Kappa1,varargout] = fit_SEIQRDP(Q,R
 %% Inputparseer
 p = inputParser();
 p.CaseSensitive = false;
-p.addOptional('tolX',1e-3);  %  option for optimset
-p.addOptional('tolFun',1e-3);  %  option for optimset
-
-% p.addOptional('Display','iter'); % Display option for optimset
-p.addOptional('Display','off'); % Display option for optimset
-
+p.addOptional('tolX',1e-4);  %  option for optimset
+p.addOptional('tolFun',1e-4);  %  option for optimset
+p.addOptional('Display','iter'); % Display option for optimset
 p.addOptional('dt', 1/24); % time step for the fitting
 p.parse(varargin{:});
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 tolX = p.Results.tolX ;
 tolFun = p.Results.tolFun ;
@@ -59,29 +55,34 @@ dt  = p.Results.dt ;
 
 %% Options for lsqcurvfit
 
-options=optimset('TolX',tolX,'TolFun',tolFun,'MaxFunEvals',500,'Display',Display);
-
+options=optimset('TolX',tolX,'TolFun',tolFun,'MaxFunEvals',800,'Display',Display);
 %% Fitting the data
 
 % Write the target input into a matrix
 Q(Q<0)=0; % negative values are not possible
 R(R<0)=0; % negative values are not possible
 D(D<0)=0; % negative values are not possible
-input = [Q;R;D];
+
+if isempty(R)
+    warning(' No data available for "Recovered" ')
+    input = [Q;D];
+else
+    input = [Q;R;D];
+end
 
 if size(time,1)>size(time,2) && size(time,2)==1,    time = time';end
 if size(time,1)>1 && size(time,2)>1,  error('Time should be a vector');end
 
 fs = 1./dt;
-tTarget = round(datenum(time-time(1))*fs)/fs; % Number of days with one decimal
+tTarget = round(datenum(time-time(1))*fs)/fs; % Number of days with one decimal 
 
 t = tTarget(1):dt:tTarget(end); % oversample to ensure that the algorithm converges
 
 modelFun1 = @SEIQRDP_for_fitting; % transform a nested function into anonymous function
 
 % call Lsqcurvefit
-[Coeff,~,residual,~,~,~,jacobian] = lsqcurvefit( @(para,t) modelFun1(para,t),...
-    guess,tTarget(:)',input,zeros(1,numel(guess)),[2 2 2 2 1 2 1 2],options);
+[Coeff,~,residual,~,~,~,jacobian] = lsqcurvefit(@(para,t) modelFun1(para,t),...
+    guess,tTarget(:)',input,zeros(1,numel(guess)),[1 2 1 1 1 2 1 2],options);
 
 
 if nargout ==7
@@ -99,6 +100,7 @@ end
 
 
 %% Write the fitted coeff in the outputs
+
 alpha1 = abs(Coeff(1));
 beta1 = abs(Coeff(2));
 gamma1 = abs(Coeff(3));
@@ -106,36 +108,51 @@ delta1 = abs(Coeff(4));
 Lambda1 = abs(Coeff(5:6));
 Kappa1 = abs(Coeff(7:8));
 
+% if isempty(R)
+%     Lambda1(2)=0;
+% end
+
 %% nested functions
 
     function [output] = SEIQRDP_for_fitting(para,t0)
-        
+
         alpha = abs(para(1));
         beta = abs(para(2));
         gamma = abs(para(3));
         delta = abs(para(4));
         lambda0 = abs(para(5:6));
         kappa0 = abs(para(7:8));
-        
+
         
         %% Initial conditions
         N = numel(t);
         Y = zeros(7,N);
-        Y(1,1) = Npop-Q(1)-R(1)-D(1)-E0-I0;
         Y(2,1) = E0;
         Y(3,1) = I0;
         Y(4,1) = Q(1);
-        Y(5,1) = R(1);
+        if ~isempty(R)
+            Y(5,1) = R(1);
+            Y(1,1) = Npop-Q(1)-R(1)-D(1)-E0-I0;
+        else
+            Y(1,1) = Npop-Q(1)-D(1)-E0-I0;
+        end
         Y(6,1) = D(1);
+        
         if round(sum(Y(:,1))-Npop)~=0
             error('the sum must be zero because the total population (including the deads) is assumed constant');
         end
+        
         %%
         modelFun = @(Y,A,F) A*Y + F;
-        
-        lambda = lambda0(1) * (1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
-        kappa  = kappa0(1)  * exp(-kappa0(2).*t); % I use these functions for illustrative purpose only
-        
+         
+%          if ~isempty(R)
+                  lambda = lambda0(1)*(1-exp(-lambda0(2).*t)); % I use these functions for illustrative purpose only
+                  kappa = kappa0(1)*exp(-kappa0(2).*t); 
+%          else
+%              lambda = lambda0(1).*ones(1,N); % I use these functions for illustrative purpose only
+%              kappa = kappa0(1)*exp(-kappa0(2).*t); 
+%          end
+                  
         % ODE reYution
         for ii=1:N-1
             A = getA(alpha,gamma,delta,lambda(ii),kappa(ii));
@@ -145,19 +162,22 @@ Kappa1 = abs(Coeff(7:8));
             Y(:,ii+1) = RK4(modelFun,Y(:,ii),A,F,dt);
         end
         
+%         I1 = Y(3,1:N);
+        Q1 = Y(4,1:N);
+        R1 = Y(5,1:N);
+        D1 = Y(6,1:N);
         
-        Q0 = Y(4,1:N);
-        R0 = Y(5,1:N);
-        D0 = Y(6,1:N);
-        
-        Q0 = interp1(t,Q0,t0);
-        R0 = interp1(t,R0,t0);
-        D0 = interp1(t,D0,t0);
-        
-        output = [Q0;R0;D0];
-        
+        Q1 = interp1(t,Q1,t0);
+        R1 = interp1(t,R1,t0);
+        D1 = interp1(t,D1,t0);
+        if ~isempty(R)
+            output = [Q1;R1;D1];
+        else
+            output = [Q1+R1;D1];
+        end
         
     end
+
     function [A] = getA(alpha,gamma,delta,lambda,kappa)
         
         A = zeros(7);
@@ -177,6 +197,7 @@ Kappa1 = abs(Coeff(7:8));
         A(7,1) = alpha;
         
     end
+
     function [Y] = RK4(Fun,Y,A,F,dt)
         
         % Runge-Kutta of order 4

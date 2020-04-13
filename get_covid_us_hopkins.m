@@ -20,6 +20,8 @@ if nargin < 1
     
 end
 
+tableRecovered = [];
+
 %% Import the data
 
 status = {'confirmed','deaths'};
@@ -45,7 +47,8 @@ for i=1:numel(status)
     opts.VariableNames(7) = {'ProvinceState'};  % Province_State
     opts.VariableNames(8) = {'CountryRegion'};  % Country_Region
     opts.VariableNames(9) = {'Lat'};
-    opts.VariableNames(10) = {'Long'};
+    opts.VariableNames(10) = {'Long'};    
+    opts.VariableNames(11) = {'Combined_Key'};
     
     % Specify file level properties
     opts.ExtraColumnsRule = "ignore";
@@ -58,7 +61,6 @@ for i=1:numel(status)
         tableConfirmed.Var3 = []; % is03
         tableConfirmed.Var4 = []; % code3
         tableConfirmed.Var5 = []; % FIPS
-        tableConfirmed.Var11 = []; % Combined_Key
         
     elseif strcmpi(status{i},'Deaths')
         tableDeaths =readtable(filename, opts);
@@ -68,7 +70,6 @@ for i=1:numel(status)
         tableDeaths.Var3 = []; % is03
         tableDeaths.Var4 = []; % code3
         tableDeaths.Var5 = []; % FIPS
-        tableDeaths.Var11 = []; % Combined_Key
 
     else
         error('Unknown status')
