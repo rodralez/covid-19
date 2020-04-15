@@ -35,7 +35,7 @@ population_ar = [ 3075646; 17541141; 415438; 1204541; 618994; ...
 
 %% RECOVERIES TABLE IS EMPTY
 
-tableRecovered_AR = [];
+
 
 if ( strcmp (source, 'online'))
     
@@ -96,11 +96,30 @@ if ( strcmp (source, 'online'))
     tableDeaths_AR.CountryRegion = country_c';
     tableDeaths_AR.ProvinceState = province_ar;
     tableDeaths_AR.Population = population_ar;
-    
+
     % Daytime cells
     for ddx = 1:DAYS
         time_s = ['Day_',datestr(FIRST_DAY+ddx-1,'dd_mm_yy') ];
         tableDeaths_AR.Properties.VariableNames(3+ddx) = { time_s };
+    end
+    
+    % Recovery table is made by hand.
+    tableRecovered_AR = table('Size', [1 DAYS+3], 'VariableTypes', vartype_c );
+    tableRecovered_AR.Properties.VariableNames(1:3) = {'ProvinceState','CountryRegion','Population'};
+    tableRecovered_AR.CountryRegion = {'Argentina'};
+    tableRecovered_AR.ProvinceState = {''};
+    tableRecovered_AR.Population = tableDeaths_AR.Population(25);
+    
+    % Recovered series starts on 14/03/2020.
+    recov = [zeros(1,12), 1, 1, 1, 3, 3, 3, 3, 3, 27, 51, 52, 52, 72, 72, 72, ...
+        91, 228, 240, 248, 256, 266, 279, 280, 325, 338, 358, 365, 375, 440, 468, 515];  % , 559
+    fill_z = zeros (1, size(tableRecovered_AR(1,4:end), 2) - size(recov, 2) ) ;
+    tableRecovered_AR(1,4:end) = num2cell( [recov,  fill_z ] );
+            
+    % Daytime cells
+    for ddx = 1:DAYS
+        time_s = ['Day_',datestr(FIRST_DAY+ddx-1,'dd_mm_yy') ];
+        tableRecovered_AR.Properties.VariableNames(3+ddx) = { time_s };
     end
     
     % Index for Indeterminado
@@ -164,6 +183,9 @@ if ( strcmp (source, 'online'))
     total_c = sum ( table2array(tableConfirmed_AR(1:24, 3:end) ) );
     tableConfirmed_AR( 25, 3:end ) = array2table( total_c );
     
+    total_c = sum ( table2array(tableDeaths_AR(1:24, 3:end) ) );
+    tableDeaths_AR( 25, 3:end ) = array2table( total_c );
+    
     %% TIME
     
     time_AR = FIRST_DAY:LAST_DAY;
@@ -171,6 +193,7 @@ if ( strcmp (source, 'online'))
     %% SAVE TABLES   
     
     save tableConfirmed_AR tableConfirmed_AR
+    save tableRecovered_AR tableRecovered_AR
     save tableDeaths_AR tableDeaths_AR
     save time_AR time_AR
     
@@ -178,6 +201,10 @@ if ( strcmp (source, 'online'))
     name = 'time_series_covid19_confirmed_ARG.csv';
     filename = [directory , name ];
     writetable(tableConfirmed_AR, filename );
+
+    name = 'time_series_covid19_recovered_ARG.csv';
+    filename = [directory , name ];
+    writetable(tableRecovered_AR, filename );
     
     name = 'time_series_covid19_deaths_ARG.csv';
     filename = [directory , name ];
@@ -189,6 +216,7 @@ elseif (strcmp (source, 'offline') )
     %% LOAD TABLES
     
     load tableConfirmed_AR
+    load tableRecovered_AR
     load tableDeaths_AR
     load time_AR
     

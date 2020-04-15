@@ -51,9 +51,9 @@ addpath ./num2sip
 
 Province = '';
 % Province = 'CABA';
-Country = 'Argentina';
+% Country = 'Argentina';
 % Country = 'Ecuador';
-% Country = 'Brazil';
+Country = 'Brazil';
 % Country = 'Chile';
 % Country = 'Uruguay';
 
@@ -71,33 +71,31 @@ Country = 'Argentina';
 % Country = 'China';
 % Province = 'Hubei';
 
-
-
 %% SOURCE
 
-source = 'online' ;
-% source = 'offline' ;
+% source = 'online' ;
+source = 'offline' ;
 
-% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
+[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
 
-[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
+% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
 
 % [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
 
 %% FITTIN INTERVAL
-
+% 
 % MODEL_EVAL = 'ON';
-% FIT_UNTIL =  datetime(2020, 4, 8);
+% FIT_UNTIL =  datetime(2020, 4, 12);
 % FIT_FROM  =  FIT_UNTIL - 14;
 % FIT_FROM  =  datetime(2020, 3, 1);
-% 
-% FORECAST_DAYS = 7; % DAYS TO FORECAST
+
+% FORECAST_DAYS = 15; % DAYS TO FORECAST
 
 % Argentina
-FIT_UNTIL =  datetime(2020, 4, 12);
-FIT_FROM  =  FIT_UNTIL - 14;
-% FIT_FROM  =  datetime(2020, 3, 1);
-
+FIT_UNTIL =  datetime(2020, 4, 14);
+FIT_FROM  =  FIT_UNTIL - 15;
+% % FIT_FROM  =  datetime(2020, 3, 1);
+%
 FORECAST_DAYS = 15; % DAYS TO FORECAST
 
 if (~exist('MODEL_EVAL','var')),  MODEL_EVAL  = 'OFF'; end
@@ -111,7 +109,7 @@ try
     % Population
     Npop = tableConfirmed.Population (indC);
     
-    if ~isempty(tableRecovered)    
+    if ~isempty(tableRecovered)
         indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
         indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
     else
@@ -147,35 +145,27 @@ end
 % confirmed cases
 
 Confirmed = table2array(tableConfirmed(indC, 4:end));
-if ~isempty(tableRecovered)   
+if ~isempty(tableRecovered)
     Recovered = table2array(tableRecovered(indR, 4:end));
 end
 Deaths    = table2array(tableDeaths(indD, 4:end));
 
 minNum = 50;
 time(Confirmed <= minNum)= [];
-if ~isempty(tableRecovered)   
+if ~isempty(tableRecovered)
     Recovered(Confirmed <= minNum)=[];
 end
 Deaths(Confirmed <= minNum)=[];
 Confirmed(Confirmed <= minNum)=[];
 
+% Confirmed = Confirmed * 5;
 
 %% FITTING
 
 if strcmp( ITERATIVE, 'OFF' )
-    
-%     % Italy
-%     guess.QT = 0.5; % 2 weeks, quarantine time in days, recovery time, infectious period, delta^(-1)
-%     guess.LT = 6; % 11 7 10, 1-14 days, latent time in days, incubation period, gamma^(-1)
-%     
-    % Spain
-%     guess.QT = 0.5; % 5 weeks, quarantine time in days, recovery time, infectious period, delta^(-1)
-%     guess.LT = 13; % 11, 1-14 days, latent time in days, incubation period, gamma^(-1)
-%     
-    % Argentina
-    guess.QT = 5; % 5 weeks, quarantine time in days, recovery time, infectious period, delta^(-1)
-    guess.LT = 5; % 11, 1-14 days, latent time in days, incubation period, gamma^(-1)    
+
+    guess.LT = 5; % gamma^(-1), incubation period. 
+    guess.QT = 5; % delta^(-1), infectious period.
 end
 
 % Definition of the first estimates for the parameters
@@ -197,14 +187,14 @@ C0 = Confirmed(tfit);
 E0 = C0(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = C0(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
-if ~isempty(tableRecovered)   
+if ~isempty(tableRecovered)
     
     param_fit = my_fit_SEIQRDP(Confirmed(tfit), Recovered(tfit), Deaths(tfit), Npop, E0, I0, time(tfit), guess);
-
+    
     Active = Confirmed - Recovered - Deaths;
 else
     param_fit = my_fit_SEIQRDP(Confirmed(tfit), [], Deaths(tfit), Npop, E0, I0, time(tfit), guess);
-
+    
     Active = Confirmed - Recovered - Deaths;
 end
 
@@ -237,8 +227,13 @@ C1 = Q1 + R1 + D1 ;
 
 %% DOUBLING ANALYSYS
 
-fdx = find ( Q1 <= ceil( Q1(end) / 2 ), 1, 'last');
+% fdx = find ( c1 <= ceil( C1(end) / 2 ), 1, 'last');
+fdx = find ( C1 >= floor( C1(end) / 2 ), 1, 'first');
 doubling = round( datenum ( time_sim(end)- time_sim(fdx) ) );
+
+% fdx = find ( Confirmed <= ceil( Confirmed(end) / 2 ), 1, 'last');
+% fdx = find ( Confirmed >= ceil( Confirmed(end) / 2 ), 1, 'first');
+% doubling = round( datenum ( time_sim(end)- time_sim(fdx) ) );
 
 if isempty(doubling)
     warning ('doubling is empty.')
@@ -295,6 +290,7 @@ if strcmp( ITERATIVE, 'OFF' )
     fprintf( ' %s \n', delta_str );
     fprintf( ' %s \n', lambda_str );
     fprintf( ' %s \n', kappa_str );
+    fprintf( ' %s \n', doub_str );
     
 end
 
@@ -351,10 +347,10 @@ if strcmp( ITERATIVE, 'OFF' )
     % FITING, LINES
     %--------------------------------------------------------------------------
     
-%     c1 = semilogy(time_sim (fidx), C1 (fidx), 'color', green, 'LineWidth', line_width);
-
+    %     c1 = semilogy(time_sim (fidx), C1 (fidx), 'color', green, 'LineWidth', line_width);
+    
     q1 = semilogy(time_sim (fidx), Q1 (fidx), 'color', red_dark, 'LineWidth', line_width);
-    hold on   
+    hold on
     r1 = semilogy(time_sim (fidx), R1 (fidx), 'color', blue, 'LineWidth', line_width);
     
     d1 = semilogy(time_sim (fidx), D1 (fidx), 'k', 'LineWidth', line_width);
@@ -370,12 +366,12 @@ if strcmp( ITERATIVE, 'OFF' )
     % FORECASTING, POINTS
     %--------------------------------------------------------------------------
     
-%     cp = semilogy(time_sim (fopx), C1(fopx), 'color', green, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
+    %     cp = semilogy(time_sim (fopx), C1(fopx), 'color', green, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
     qp = semilogy(time_sim (fopx), Q1(fopx), 'color', red_dark, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
     rp = semilogy(time_sim (fopx), R1(fopx), 'color', blue, 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
     dp = semilogy(time_sim (fopx), D1(fopx), 'color', 'black', 'Marker','x', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks);
     
-%     cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
+    %     cr = semilogy(time, Confirmed, 'color', green, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
     qr = semilogy(time, Active,    'color', red_dark, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
     rr = semilogy(time, Recovered, 'color', blue, 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
     dr = semilogy(time, Deaths,    'color', 'black', 'Marker', 'o', 'LineStyle', 'none', 'LineWidth', line_width_pt, 'MarkerSize', mks);
@@ -396,11 +392,11 @@ if strcmp( ITERATIVE, 'OFF' )
     end
     
     set(gcf,'color','w')
-%     set(gca,'yscale','lin')
+    %     set(gca,'yscale','lin')
     set(gca,'yscale','log')
     
     xlim([ time(1) time_sim(end) ])
-        
+    
     ylim([ min(Deaths) max(Active)*3  ]) % max(Active)*3
     
     set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):4:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
@@ -417,7 +413,7 @@ if strcmp( ITERATIVE, 'OFF' )
     else
         title_country = [Province,' (',Country,')'];
     end
-       
+    
     if strcmp (ENGLISH, 'ON')
         
         if strcmp (MODEL_EVAL, 'OFF')
@@ -427,8 +423,8 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         sub_title_srt = '\fontsize{20}\color{gray}\rmSource: Johns Hopkins CSSE.';
-    
-        title_srt = sprintf('%s, %s.\nFitted with %d days, forecasted %d days from %s.', ... 
+        
+        title_srt = sprintf('%s, %s.\nFitted with %d days, forecasted %d days from %s.', ...
             title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str );
     else
         
@@ -439,11 +435,11 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         sub_title_srt = '\fontsize{20}\color{gray}\rmFuente: Johns Hopkins CSSE.';
-    
-        title_srt = sprintf('%s, %s.\nAjuste con %d días, proyección de %d días desde %s.', ...  
-            title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str );    
+        
+        title_srt = sprintf('%s, %s.\nAjuste con %d días, proyección de %d días desde %s.', ...
+            title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str );
     end
- 
+    
     tl =  title( { title_srt ; sub_title_srt } );
     %--------------------------------------------------------------------------
     
@@ -451,7 +447,7 @@ if strcmp( ITERATIVE, 'OFF' )
     % Points with value labels
     %--------------------------------------------------------------------------
     
-    delay = -1/2;  %  -1/2
+    delay = 0;  %  -1/2
     P = 5;
     hght = 1.9;
     
@@ -463,7 +459,7 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 1 : P : size(Recovered, 2)
-            text( time(i)+delay, Recovered(i)*hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
+            text( time(i)+delay, Recovered(i)/hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
         end
         
         for i = 1 : P : size(Deaths, 2)
@@ -476,7 +472,7 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 2 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, r_fore_pt(i)*hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
+            text(time_fore_pt(i)+delay, r_fore_pt(i)/hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
         end
         
         for i = 2 : P : size(time_fore_pt, 2)
@@ -485,7 +481,7 @@ if strcmp( ITERATIVE, 'OFF' )
         
         % Print last vector element
         text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
-        text( time_fore_pt(end)+delay, r_fore_pt(end)*hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
+        text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
         text( time_fore_pt(end)+delay, d_fore_pt(end)/hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
     else
         %--------------------------------------------------------------------------
@@ -508,7 +504,7 @@ if strcmp( ITERATIVE, 'OFF' )
             if ( tfdx+i <= size (Recovered, 2))
                 
                 error = (round(r_fore_pt(i)) - Recovered(tfdx+i)) / Recovered(tfdx+i) * 100;
-                text( time_fore_pt(i)+delay, r_fore_pt(i)*hght , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', blue );
+                text( time_fore_pt(i)+delay, r_fore_pt(i)/hght , sprintf('%.0f%%',  error) , 'FontSize',  font_point, 'color', blue );
             end
         end
         
@@ -553,10 +549,10 @@ if strcmp( ITERATIVE, 'OFF' )
     % TEXT BOX
     %--------------------------------------------------------------------------
     
-    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
-        q_fore_str, r_fore_str, d_fore_str, doub_str);
+    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.', model_str, ...
+        q_fore_str, r_fore_str, d_fore_str);
     
-    al = annotation('textbox', [0.44, 0.24, 0.1, 0.1], 'string', text_box, ...
+    al = annotation('textbox', [0.44, 0.21, 0.1, 0.1], 'string', text_box, ...
         'LineStyle','-',...
         'FontSize', font_legend,...
         'FontName','Arial', ...
@@ -571,6 +567,9 @@ if strcmp( ITERATIVE, 'OFF' )
     set(ll,'FontSize', font_legend);
     set(al,'FontSize', font_legend);
     
+    hold off
+    
+    
     %% SAVE FIGURE TO PNG FILE
     
     if strcmp (MODEL_EVAL, 'OFF')
@@ -584,6 +583,14 @@ if strcmp( ITERATIVE, 'OFF' )
     set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
     
     saveas(gcf,file_str)
+
+    %% INFECTED FIGURE
+    
+    figure
+    
+    i1 = semilogy(time_sim (fidx), I1 (fidx), 'color', green, 'LineWidth', line_width);
+    title ('Infected (fitted)')
+    grid on
     
     %% SAVE DATA TO CSV FILE
     
