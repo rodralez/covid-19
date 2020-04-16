@@ -51,9 +51,9 @@ addpath ./num2sip
 
 Province = '';
 % Province = 'CABA';
-% Country = 'Argentina';
+Country = 'Argentina';
 % Country = 'Ecuador';
-Country = 'Brazil';
+% Country = 'Brazil';
 % Country = 'Chile';
 % Country = 'Uruguay';
 
@@ -83,17 +83,17 @@ source = 'offline' ;
 % [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
 
 %% FITTIN INTERVAL
-% 
-% MODEL_EVAL = 'ON';
-% FIT_UNTIL =  datetime(2020, 4, 12);
-% FIT_FROM  =  FIT_UNTIL - 14;
+
+MODEL_EVAL = 'ON';
+FIT_UNTIL =  datetime(2020, 4, 8);
+FIT_FROM  =  FIT_UNTIL - 14;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
 % FORECAST_DAYS = 15; % DAYS TO FORECAST
 
-% Argentina
-FIT_UNTIL =  datetime(2020, 4, 14);
-FIT_FROM  =  FIT_UNTIL - 15;
+% % Argentina
+% FIT_UNTIL =  datetime(2020, 4, 14);
+% FIT_FROM  =  FIT_UNTIL - 15;
 % % FIT_FROM  =  datetime(2020, 3, 1);
 %
 FORECAST_DAYS = 15; % DAYS TO FORECAST
@@ -307,6 +307,7 @@ green =  [0.4660, 0.6740, 0.1880];
 blue_light = [0.3010, 0.7450, 0.9330] ;
 gray = ones(1,3) * 0.5;
 red_dark =  [0.6350, 0.0780, 0.1840] ;
+red = [1 0 0];
 
 %--------------------------------------------------------------------------
 % FONT SIZE, LINE WIDTH, POINT WIDTH
@@ -355,11 +356,14 @@ if strcmp( ITERATIVE, 'OFF' )
     
     d1 = semilogy(time_sim (fidx), D1 (fidx), 'k', 'LineWidth', line_width);
     
-    % if strcmp (MODEL_EVAL, 'OFF')
-    %
-    %     i1 = semilogy(time_sim (fidx), Q1(fidx) + I1 (fidx), 'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
-    %     semilogy(time_sim (fodx), Q1(fodx) + I1 (fodx), 'color', orange, 'LineWidth', line_width, 'LineStyle', '--');
-    % end
+    %--------------------------------------------------------------------------
+    % PEAK LINE
+    %--------------------------------------------------------------------------
+    
+    qdx = find (Q1 == max(Q1));    
+    line([time_sim(qdx) time_sim(qdx)], [1 max(Q1)], 'color', red, 'linewidth', line_width, 'LineStyle', '--');
+    semilogy(time_sim (qdx),max(Q1), 'color', red, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks+3);
+     
     %--------------------------------------------------------------------------
     
     %--------------------------------------------------------------------------
@@ -586,11 +590,20 @@ if strcmp( ITERATIVE, 'OFF' )
 
     %% INFECTED FIGURE
     
+    
+    %% PLOT INFECTED AND EXPOSED
+    
     figure
     
-    i1 = semilogy(time_sim (fidx), I1 (fidx), 'color', green, 'LineWidth', line_width);
-    title ('Infected (fitted)')
+    q1 = semilogy(time_sim (fidx), I1 (fidx), 'color', red_dark, 'LineWidth', line_width);
+    hold on   
+    r1 = semilogy(time_sim (fidx), E1 (fidx), 'color', blue, 'LineWidth', line_width);
+    
     grid on
+    
+    legend('INFECTED', 'EXPOSED')
+    
+    hold off
     
     %% SAVE DATA TO CSV FILE
     
