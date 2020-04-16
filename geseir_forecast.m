@@ -73,30 +73,28 @@ Country = 'Argentina';
 
 %% SOURCE
 
-% source = 'online' ;
-source = 'offline' ;
+source = 'online' ;
+% source = 'offline' ;
 
-[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
+% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
 
-% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
+[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
 
 % [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
 
 %% FITTIN INTERVAL
 
-MODEL_EVAL = 'ON';
-FIT_UNTIL =  datetime(2020, 4, 8);
-FIT_FROM  =  FIT_UNTIL - 14;
+% MODEL_EVAL = 'ON';
+% FIT_UNTIL =  datetime(2020, 4, 8);
+% FIT_FROM  =  FIT_UNTIL - 14;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
-% FORECAST_DAYS = 15; % DAYS TO FORECAST
-
 % % Argentina
-% FIT_UNTIL =  datetime(2020, 4, 14);
-% FIT_FROM  =  FIT_UNTIL - 15;
+FIT_UNTIL =  datetime(2020, 4, 15);
+FIT_FROM  =  FIT_UNTIL - 17;
 % % FIT_FROM  =  datetime(2020, 3, 1);
-%
-FORECAST_DAYS = 15; % DAYS TO FORECAST
+
+FORECAST_DAYS = 60; % DAYS TO FORECAST
 
 if (~exist('MODEL_EVAL','var')),  MODEL_EVAL  = 'OFF'; end
 
@@ -401,7 +399,7 @@ if strcmp( ITERATIVE, 'OFF' )
     
     xlim([ time(1) time_sim(end) ])
     
-    ylim([ min(Deaths) max(Active)*3  ]) % max(Active)*3
+    ylim([ min(D1) max(Q1)*3  ]) % max(Active)*3
     
     set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):4:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
     %--------------------------------------------------------------------------
