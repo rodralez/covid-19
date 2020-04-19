@@ -19,6 +19,8 @@ if nargin < 1
     directory = './';
 end
 
+fprintf('get_covid_argentina: getting data %s...\n', source)
+
 %%
 
 province_ar = {'CABA';'Buenos Aires';'Catamarca';'Chaco';'Chubut'; ... Capital Federal
@@ -41,11 +43,13 @@ if ( strcmp (source, 'online'))
     
     % Import the data
     
-    url = 'https://raw.githubusercontent.com/SistemasMapache/Covid19arData/master/CSV/Covid19arData - historico.csv';
+    url = 'https://docs.google.com/spreadsheets/d/16-bnsDdmmgtSxdWbVMboIHo5FRuz76DBxsz_BbsEVWA/export?format=csv&id=16-bnsDdmmgtSxdWbVMboIHo5FRuz76DBxsz_BbsEVWA&gid=0';
+
+%     url = 'https://raw.githubusercontent.com/SistemasMapache/Covid19arData/master/CSV/Covid19arData - historico.csv';
     
     name = 'Covid19arData - historico.csv';
     filename = [directory , name ];
-%     websave( filename, url );
+    websave( filename, url );
     
     opts = detectImportOptions(filename);
     
@@ -110,9 +114,9 @@ if ( strcmp (source, 'online'))
     tableRecovered_AR.ProvinceState = {''};
     tableRecovered_AR.Population = tableDeaths_AR.Population(25);
     
-    % Recovered series starts on 14/03/2020.
+    % Recovered series starts on 14/03/2020, made by hand
     recov = [zeros(1,12), 1, 1, 1, 3, 3, 3, 3, 3, 27, 51, 52, 52, 72, 72, 72, ...
-        91, 228, 240, 248, 256, 266, 279, 280, 325, 338, 358, 365, 375, 440, 468, 515];  % , 559
+        91, 228, 240, 248, 256, 266, 279, 280, 325, 338, 358, 365, 375, 440, 468, 515, 559, 596, 631, 666, 685 ]; 
     fill_z = zeros (1, size(tableRecovered_AR(1,4:end), 2) - size(recov, 2) ) ;
     tableRecovered_AR(1,4:end) = num2cell( [recov,  fill_z ] );
             
@@ -223,5 +227,7 @@ elseif (strcmp (source, 'offline') )
 else
     error('get_covid_argentina: bad source.')
 end
+
+disp('get_covid_argentina: exit.')
 
 end

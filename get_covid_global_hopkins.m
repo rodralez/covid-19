@@ -20,6 +20,8 @@ if nargin < 1
     directory = './';
 end
 
+fprintf('get_covid_global_hopkins: getting data %s...\n', source)
+
 if ( strcmp (source, 'online'))
 
     status = {'confirmed','deaths','recovered'};
@@ -92,4 +94,5 @@ else
     error('get_covid_global_hopkins: bad source.')
 end
 
+disp('get_covid_global_hopkins: exit.')
 

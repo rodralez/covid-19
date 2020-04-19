@@ -24,9 +24,10 @@ if strcmp( ITERATIVE, 'OFF' )
     if (~exist('ITERATIVE','var')),  ITERATIVE  = 'OFF'; end
 end
 
-if (~exist('ENGLISH','var')),    ENGLISH  = 'OFF'; end
+if (~exist('ENGLISH','var')), ENGLISH  = 'OFF'; end
+if (~exist('PEAK','var')),    PEAK     = 'OFF'; end
 
-addpath ./num2sip
+addpath ./
 
 %% Cases
 
@@ -71,68 +72,69 @@ Country = 'Argentina';
 % Country = 'China';
 % Province = 'Hubei';
 
-%% SOURCE
+%% GET DATA
 
-source = 'online' ;
-% source = 'offline' ;
+% source = 'HOPKINS';
+source = 'MINSAL';
 
-% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_global_hopkins ( source, './hopkins/' );
+% source_input = 'online' ;
+source_input = 'offline' ;
 
-[tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_argentina( source, './csv/' );
+[tableConfirmed,tableDeaths,tableRecovered,time_jh] = get_covid_global_hopkins ( source_input, './hopkins/' );
+
+[tableConfirmed_ar,tableDeaths_ar,tableRecovered_ar,time_ar] = get_covid_argentina( source_input, './csv/' );
 
 % [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
 
 %% FITTIN INTERVAL
 
-% MODEL_EVAL = 'ON';
-% FIT_UNTIL =  datetime(2020, 4, 8);
-% FIT_FROM  =  FIT_UNTIL - 14;
+MODEL_EVAL = 'ON';
+FIT_UNTIL =  datetime(2020, 4, 3);
+FIT_FROM  =  FIT_UNTIL - 16;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
-% % Argentina
-FIT_UNTIL =  datetime(2020, 4, 15);
-FIT_FROM  =  FIT_UNTIL - 17;
+% Argentina
+% FIT_UNTIL =  datetime(2020, 4, 18);
+% FIT_FROM  =  FIT_UNTIL - 20;
 % % FIT_FROM  =  datetime(2020, 3, 1);
 
-FORECAST_DAYS = 60; % DAYS TO FORECAST
+FORECAST_DAYS = 15; % DAYS TO FORECAST
 
 if (~exist('MODEL_EVAL','var')),  MODEL_EVAL  = 'OFF'; end
 
 %% FIND COUNTRY
 
-try
-    indC = find( contains(  tableConfirmed.CountryRegion, Country) == 1 );
-    indC = indC( ismissing( tableConfirmed.ProvinceState(indC), Province) );
-    
-    % Population
-    Npop = tableConfirmed.Population (indC);
-    
-    if ~isempty(tableRecovered)
-        indR = find( contains(  tableRecovered.CountryRegion, Country) == 1 );
-        indR = indR( ismissing( tableRecovered.ProvinceState(indR), Province) );
-    else
-        indR = 0;
-    end
-    
-    indD = find(contains(   tableDeaths.CountryRegion, Country)==1);
-    indD = indD( ismissing( tableConfirmed.ProvinceState(indD), Province) );
-    
-catch exception
-    
-    searchLoc = strfind(tableRecovered.ProvinceState,Country);
-    indR = find([searchLoc{:}]==1);
-    
-    searchLoc = strfind(tableConfirmed.ProvinceState,Country);
-    indC = find([searchLoc{:}]==1);
-    
-    searchLoc = strfind(tableConfirmed.ProvinceState,Country);
-    indD = find([searchLoc{:}]==1);
+[indC, indR, indD, Npop] = find_country (tableConfirmed,tableRecovered,tableDeaths, Country, Province);
+
+Confirmed_jh = table2array(tableConfirmed(indC, 4:end));
+Deaths_jh    = table2array(tableDeaths(indD, 4:end));
+
+if ~isempty(tableRecovered)
+    Recovered_jh = table2array(tableRecovered(indR, 4:end));
 end
 
-if ( isempty(indR) & isempty(indC) & isempty(indD))
+if strcmp(Country, 'Argentina')
     
-    error('%s was not found in COVID data!', Country)
+    [indC_ar, indR_ar, indD_ar, Npop_ar] = find_country (tableConfirmed_ar,tableRecovered_ar,tableDeaths_ar, Country, Province);
     
+    compare_hopkins_minsal(tableConfirmed,tableRecovered,tableDeaths, time_jh, tableConfirmed_ar,tableRecovered_ar,tableDeaths_ar, time_ar)
+    
+    Confirmed_ar = table2array(tableConfirmed_ar(indC_ar, 4:end));
+    Deaths_ar    = table2array(tableDeaths_ar(indD_ar, 4:end));
+    
+    if ~isempty(tableRecovered)
+        Recovered_ar = table2array(tableRecovered_ar(indR_ar, 4:end));
+    end
+    
+    minNum = 50;
+    
+    time_ar(Confirmed_ar <= minNum)= [];
+    if ~isempty(tableRecovered_ar)
+        Recovered_ar(Confirmed_ar <= minNum)=[];
+    end
+    Deaths_ar(Confirmed_ar <= minNum)=[];
+    Confirmed_ar(Confirmed_ar <= minNum)=[];
+
 end
 
 %% FIND FIRST 50 CASES
@@ -142,27 +144,43 @@ end
 % suggests that the number of infectious is much larger than the number of
 % confirmed cases
 
-Confirmed = table2array(tableConfirmed(indC, 4:end));
-if ~isempty(tableRecovered)
-    Recovered = table2array(tableRecovered(indR, 4:end));
-end
-Deaths    = table2array(tableDeaths(indD, 4:end));
-
 minNum = 50;
-time(Confirmed <= minNum)= [];
+time_jh(Confirmed_jh <= minNum)= [];
 if ~isempty(tableRecovered)
-    Recovered(Confirmed <= minNum)=[];
+    Recovered_jh(Confirmed_jh <= minNum)=[];
 end
-Deaths(Confirmed <= minNum)=[];
-Confirmed(Confirmed <= minNum)=[];
+Deaths_jh(Confirmed_jh <= minNum)=[];
+Confirmed_jh(Confirmed_jh <= minNum)=[];
 
-% Confirmed = Confirmed * 5;
+%% CHOOSE DATASET
+
+if strcmp(source, 'HOPKINS')
+    
+    Confirmed = Confirmed_jh;
+    Recovered = Recovered_jh;
+    Deaths = Deaths_jh;
+    time = time_jh;
+    
+    source_str   = sprintf( 'Johns Hopkins CSSE');
+
+elseif strcmp(source, 'MINSAL')
+    
+    Confirmed = Confirmed_ar;
+    Recovered = Recovered_ar;
+    Deaths = Deaths_ar;
+    time = time_ar;
+    
+    source_str   = sprintf( 'Ministerio de Salud');    
+else
+    
+    error('No data source selected!')
+end
 
 %% FITTING
 
 if strcmp( ITERATIVE, 'OFF' )
-
-    guess.LT = 5; % gamma^(-1), incubation period. 
+    
+    guess.LT = 5; % gamma^(-1), incubation period.
     guess.QT = 5; % delta^(-1), infectious period.
 end
 
@@ -174,7 +192,7 @@ guess.lambda = [0.1, 0.05]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
 
 tidx = datefind( FIT_FROM,  time);
-tfdx = datefind( FIT_UNTIL, time);
+tfdx = datefind( FIT_UNTIL, time);sub_title_srt = '\fontsize{20}\color{gray}\rmFuente: Johns Hopkins CSSE.';
 
 tfit = time >= FIT_FROM;
 tfit = time <= FIT_UNTIL & tfit;
@@ -226,7 +244,7 @@ C1 = Q1 + R1 + D1 ;
 %% DOUBLING ANALYSYS
 
 % fdx = find ( c1 <= ceil( C1(end) / 2 ), 1, 'last');
-fdx = find ( C1 >= floor( C1(end) / 2 ), 1, 'first');
+fdx = find ( Q1 >= floor( Q1(end) / 2 ), 1, 'first');
 doubling = round( datenum ( time_sim(end)- time_sim(fdx) ) );
 
 % fdx = find ( Confirmed <= ceil( Confirmed(end) / 2 ), 1, 'last');
@@ -254,21 +272,21 @@ if strcmp( ITERATIVE, 'OFF' )
         q_fore_str  = sprintf( '%d active cases (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
         r_fore_str  = sprintf( '%d recoveries (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
         d_fore_str  = sprintf( '%d deaths (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
-        doub_str  = sprintf( 'Active cases are doubled in %d days', doubling );
+        doubling_str  = sprintf( 'Active cases are doubled in %d days', doubling );
     else
         model_str   = sprintf( 'GeSEIR proyecta para el %s:', datestr( time_sim(end), 'dd/mm/yy' ) );
         c_fore_str  = sprintf( '%d casos confirmados (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
         q_fore_str  = sprintf( '%d casos activos (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
         r_fore_str  = sprintf( '%d recuperados (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
         d_fore_str  = sprintf( '%d fallecidos (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
-        doub_str    = sprintf( 'Se duplican activos cada %d días', doubling );
+        doubling_str    = sprintf( 'Casos activos se duplican cada %d días', doubling );
     end
     
     i_fore_str  = sprintf( '%d potential active cases', round( Q1(end) + I1(end) ) );
     
-    Q_fore_str  = sprintf( 'Models predicts %d active cases on %s', round( (Q1(end)) ), datestr( time_sim(end) ) );
-    N_fore_str  = sprintf( 'Models predicts new %d active cases on %s', round( (Q1(end)) - Active(end) ), datestr( time_sim(end) ) );
-    I_fore_str  = sprintf( 'Models predicts %d potential infected on %s', round( Q1(end) + I1(end) ), datestr( time_sim(end) ) );
+    Q_fore_str  = sprintf( 'Models predicts %d active cases on %s', round( ( Q1(end)) ), datestr( time_sim(end) ) );
+    N_fore_str  = sprintf( 'Models predicts new %d active cases on %s', round( ( Q1(end) ) - Active(end) ), datestr( time_sim(end) ) );
+    I_fore_str  = sprintf( 'Models predicts %d infected on %s', round( I1(end) ), datestr( time_sim(end) ) );
     
     % ro_str     = sprintf( 'Ro: %.2f', BRN );
     alpha_str   = sprintf( 'alpha : %.2f', param_fit.alpha );
@@ -288,7 +306,7 @@ if strcmp( ITERATIVE, 'OFF' )
     fprintf( ' %s \n', delta_str );
     fprintf( ' %s \n', lambda_str );
     fprintf( ' %s \n', kappa_str );
-    fprintf( ' %s \n', doub_str );
+    fprintf( ' %s \n', doubling_str );
     
 end
 
@@ -358,10 +376,13 @@ if strcmp( ITERATIVE, 'OFF' )
     % PEAK LINE
     %--------------------------------------------------------------------------
     
-    qdx = find (Q1 == max(Q1));    
-    line([time_sim(qdx) time_sim(qdx)], [1 max(Q1)], 'color', red, 'linewidth', line_width, 'LineStyle', '--');
-    semilogy(time_sim (qdx),max(Q1), 'color', red, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks+3);
-     
+    if strcmp (PEAK, 'ON')
+        
+        qdx = find (Q1 == max(Q1));
+        line([time_sim(qdx) time_sim(qdx)], [1 max(Q1)], 'color', red, 'linewidth', line_width, 'LineStyle', '--');
+        semilogy(time_sim (qdx),max(Q1), 'color', red, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks+3);
+    end
+    
     %--------------------------------------------------------------------------
     
     %--------------------------------------------------------------------------
@@ -399,7 +420,7 @@ if strcmp( ITERATIVE, 'OFF' )
     
     xlim([ time(1) time_sim(end) ])
     
-    ylim([ min(D1) max(Q1)*3  ]) % max(Active)*3
+    ylim([ 1 max(Q1)*2  ]) % max(Active)*3
     
     set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):4:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
     %--------------------------------------------------------------------------
@@ -411,9 +432,9 @@ if strcmp( ITERATIVE, 'OFF' )
     date_str = datestr(time(tfdx), 'dd/mm/yy');
     
     if (strcmp(Province, ''))
-        title_country = Country;
+        country_str = Country;
     else
-        title_country = [Province,' (',Country,')'];
+        country_str = [Province,' (',Country,')'];
     end
     
     if strcmp (ENGLISH, 'ON')
@@ -424,11 +445,17 @@ if strcmp( ITERATIVE, 'OFF' )
             title_type = 'GeSEIR model for COVID-19 evaluation';
         end
         
-        sub_title_srt = '\fontsize{20}\color{gray}\rmSource: Johns Hopkins CSSE.';
+        sub_title_srt     = ['\fontsize{20}\color{gray}\rm Source: ', source_str, '.'];
         
         title_srt = sprintf('%s, %s.\nFitted with %d days, forecasted %d days from %s.', ...
-            title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str );
+            country_str,title_type, FIT_DAYS, FORECAST_DAYS, date_str );
     else
+        
+        switch (country_str)           
+            case 'Spain', country_str = 'España';
+            case 'Italy', country_str = 'Italia';
+            case 'US', country_str = 'EE.UU.';
+        end
         
         if strcmp (MODEL_EVAL, 'OFF')
             title_type = 'Modelo GeSEIR para la predicción de COVID-19';
@@ -436,10 +463,10 @@ if strcmp( ITERATIVE, 'OFF' )
             title_type = 'Modelo GeSEIR para la evaluación de COVID-19';
         end
         
-        sub_title_srt = '\fontsize{20}\color{gray}\rmFuente: Johns Hopkins CSSE.';
-        
+        sub_title_srt     = ['\fontsize{20}\color{gray}\rm Fuente: ', source_str, '.'];
+                
         title_srt = sprintf('%s, %s.\nAjuste con %d días, proyección de %d días desde %s.', ...
-            title_country,title_type, FIT_DAYS, FORECAST_DAYS, date_str );
+            country_str,title_type, FIT_DAYS, FORECAST_DAYS, date_str );
     end
     
     tl =  title( { title_srt ; sub_title_srt } );
@@ -451,7 +478,7 @@ if strcmp( ITERATIVE, 'OFF' )
     
     delay = 0;  %  -1/2
     P = 5;
-    hght = 1.9;
+    hght = 1.5;
     
     if strcmp (MODEL_EVAL, 'OFF')
         
@@ -465,7 +492,7 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 1 : P : size(Deaths, 2)
-            text( time(i)+delay, Deaths(i)/hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+            text( time(i)+delay, Deaths(i)*hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
         end
         
         
@@ -478,13 +505,13 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 2 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, d_fore_pt(i)/hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+            text(time_fore_pt(i)+delay, d_fore_pt(i)*hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
         end
         
         % Print last vector element
-        text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
-        text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
-        text( time_fore_pt(end)+delay, d_fore_pt(end)/hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+%         text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
+%         text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
+%         text( time_fore_pt(end)+delay, d_fore_pt(end)/hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
     else
         %--------------------------------------------------------------------------
         % Points with errors percent labels
@@ -543,7 +570,7 @@ if strcmp( ITERATIVE, 'OFF' )
             'Fallecidos (reportados)'};
     end
     
-    ll = legend( [q1, r1, d1, qr, rr, dr], leg{:}, 'Location','SouthEast' );
+    ll = legend( [q1, r1, d1, qr, rr, dr], leg{:}, 'Location','SouthEast' ); % NorthWest
     
     %--------------------------------------------------------------------------
     
@@ -551,10 +578,10 @@ if strcmp( ITERATIVE, 'OFF' )
     % TEXT BOX
     %--------------------------------------------------------------------------
     
-    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.', model_str, ...
-        q_fore_str, r_fore_str, d_fore_str);
+    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
+        q_fore_str, r_fore_str, d_fore_str, doubling_str);
     
-    al = annotation('textbox', [0.44, 0.21, 0.1, 0.1], 'string', text_box, ...
+    al = annotation('textbox', [0.40, 0.23, 0.1, 0.1], 'string', text_box, ...
         'LineStyle','-',...
         'FontSize', font_legend,...
         'FontName','Arial', ...
@@ -585,7 +612,7 @@ if strcmp( ITERATIVE, 'OFF' )
     set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
     
     saveas(gcf,file_str)
-
+    
     %% INFECTED FIGURE
     
     
@@ -594,7 +621,7 @@ if strcmp( ITERATIVE, 'OFF' )
     figure
     
     q1 = semilogy(time_sim (fidx), I1 (fidx), 'color', red_dark, 'LineWidth', line_width);
-    hold on   
+    hold on
     r1 = semilogy(time_sim (fidx), E1 (fidx), 'color', blue, 'LineWidth', line_width);
     
     grid on
