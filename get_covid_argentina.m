@@ -116,7 +116,7 @@ if ( strcmp (source, 'online'))
     
     % Recovered series starts on 14/03/2020, made by hand
     recov = [zeros(1,12), 1, 1, 1, 3, 3, 3, 3, 3, 27, 51, 52, 52, 72, 72, 72, ...
-        91, 228, 240, 248, 256, 266, 279, 280, 325, 338, 358, 365, 375, 440, 468, 515, 559, 596, 631, 666, 685 ]; 
+        91, 228, 240, 248, 256, 266, 279, 280, 325, 338, 358, 365, 375, 440, 468, 515, 559, 596, 631, 666, 685, 709 ]; %737 
     fill_z = zeros (1, size(tableRecovered_AR(1,4:end), 2) - size(recov, 2) ) ;
     tableRecovered_AR(1,4:end) = num2cell( [recov,  fill_z ] );
             

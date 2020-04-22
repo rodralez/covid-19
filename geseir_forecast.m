@@ -28,6 +28,8 @@ if (~exist('ENGLISH','var')), ENGLISH  = 'OFF'; end
 if (~exist('PEAK','var')),    PEAK     = 'OFF'; end
 
 addpath ./
+addpath /home/rodralez/my/investigacion/work-in-progress/covid-19/matlab/
+addpath ./num2sip/
 
 %% Cases
 
@@ -63,6 +65,7 @@ Country = 'Argentina';
 % Country = 'Italy';
 % Country = 'US';
 
+% Country = 'Belgium';
 % Country = 'Germany';
 % Country = 'Turkey';
 % Country = 'France';
@@ -74,9 +77,9 @@ Country = 'Argentina';
 
 %% GET DATA
 
-% source = 'HOPKINS';
-source = 'MINSAL';
-
+source = 'HOPKINS';
+% source = 'MINSAL';
+% 
 % source_input = 'online' ;
 source_input = 'offline' ;
 
@@ -88,14 +91,14 @@ source_input = 'offline' ;
 
 %% FITTIN INTERVAL
 
-MODEL_EVAL = 'ON';
-FIT_UNTIL =  datetime(2020, 4, 3);
-FIT_FROM  =  FIT_UNTIL - 16;
+% MODEL_EVAL = 'ON';
+% FIT_UNTIL =  datetime(2020, 4, 3);
+% FIT_FROM  =  FIT_UNTIL - 16;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
 % Argentina
-% FIT_UNTIL =  datetime(2020, 4, 18);
-% FIT_FROM  =  FIT_UNTIL - 20;
+FIT_UNTIL =  datetime(2020, 4, 21);
+FIT_FROM  =  FIT_UNTIL - 19;
 % % FIT_FROM  =  datetime(2020, 3, 1);
 
 FORECAST_DAYS = 15; % DAYS TO FORECAST
@@ -245,13 +248,12 @@ C1 = Q1 + R1 + D1 ;
 
 % fdx = find ( c1 <= ceil( C1(end) / 2 ), 1, 'last');
 fdx = find ( Q1 >= floor( Q1(end) / 2 ), 1, 'first');
-doubling = round( datenum ( time_sim(end)- time_sim(fdx) ) );
+doubling_q = round( datenum ( time_sim(end)- time_sim(fdx) ) );
 
-% fdx = find ( Confirmed <= ceil( Confirmed(end) / 2 ), 1, 'last');
-% fdx = find ( Confirmed >= ceil( Confirmed(end) / 2 ), 1, 'first');
-% doubling = round( datenum ( time_sim(end)- time_sim(fdx) ) );
+fdx = find ( D1 >= floor( D1(end) / 2 ), 1, 'first');
+doubling_d = round( datenum ( time_sim(end)- time_sim(fdx) ) );
 
-if isempty(doubling)
+if isempty(doubling_q | doubling_d)
     warning ('doubling is empty.')
 end
 
@@ -272,14 +274,16 @@ if strcmp( ITERATIVE, 'OFF' )
         q_fore_str  = sprintf( '%d active cases (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
         r_fore_str  = sprintf( '%d recoveries (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
         d_fore_str  = sprintf( '%d deaths (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
-        doubling_str  = sprintf( 'Active cases are doubled in %d days', doubling );
+        double_q_str  = sprintf( 'Active cases are doubled in %d days', doubling_q );
+        double_d_str    = sprintf( 'Deaths are doubled in %d days', doubling_q );
     else
         model_str   = sprintf( 'GeSEIR proyecta para el %s:', datestr( time_sim(end), 'dd/mm/yy' ) );
         c_fore_str  = sprintf( '%d casos confirmados (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
         q_fore_str  = sprintf( '%d casos activos (%+d)', round( Q1(end) ) , round( Q1(end) - Active(end) ) );
         r_fore_str  = sprintf( '%d recuperados (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
         d_fore_str  = sprintf( '%d fallecidos (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
-        doubling_str    = sprintf( 'Casos activos se duplican cada %d días', doubling );
+        double_q_str    = sprintf( 'Casos activos se duplican cada %d días', doubling_q );
+        double_d_str    = sprintf( 'Fallecidos se duplican cada %d días', doubling_q );
     end
     
     i_fore_str  = sprintf( '%d potential active cases', round( Q1(end) + I1(end) ) );
@@ -306,7 +310,7 @@ if strcmp( ITERATIVE, 'OFF' )
     fprintf( ' %s \n', delta_str );
     fprintf( ' %s \n', lambda_str );
     fprintf( ' %s \n', kappa_str );
-    fprintf( ' %s \n', doubling_str );
+    fprintf( ' %s \n', double_q_str );
     
 end
 
@@ -509,9 +513,9 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         % Print last vector element
-%         text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
-%         text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
-%         text( time_fore_pt(end)+delay, d_fore_pt(end)/hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+        text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
+        text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
+        text( time_fore_pt(end)+delay, d_fore_pt(end)*hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
     else
         %--------------------------------------------------------------------------
         % Points with errors percent labels
@@ -578,10 +582,10 @@ if strcmp( ITERATIVE, 'OFF' )
     % TEXT BOX
     %--------------------------------------------------------------------------
     
-    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
-        q_fore_str, r_fore_str, d_fore_str, doubling_str);
+    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
+        q_fore_str, r_fore_str, d_fore_str, double_q_str, double_d_str);
     
-    al = annotation('textbox', [0.40, 0.23, 0.1, 0.1], 'string', text_box, ...
+    al = annotation('textbox', [0.40, 0.26, 0.1, 0.1], 'string', text_box, ...
         'LineStyle','-',...
         'FontSize', font_legend,...
         'FontName','Arial', ...
