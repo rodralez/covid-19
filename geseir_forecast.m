@@ -80,8 +80,8 @@ Country = 'Argentina';
 source = 'HOPKINS';
 % source = 'MINSAL';
 % 
-% source_input = 'online' ;
-source_input = 'offline' ;
+source_input = 'online' ;
+% source_input = 'offline' ;
 
 [tableConfirmed,tableDeaths,tableRecovered,time_jh] = get_covid_global_hopkins ( source_input, './hopkins/' );
 
