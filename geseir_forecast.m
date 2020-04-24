@@ -54,7 +54,7 @@ addpath ./num2sip/
 
 Province = '';
 % Province = 'CABA';
-Country = 'Argentina';
+% Country = 'Argentina';
 % Country = 'Ecuador';
 % Country = 'Brazil';
 % Country = 'Chile';
@@ -62,7 +62,7 @@ Country = 'Argentina';
 
 % Country = 'United Kingdom';
 % Country = 'Spain';
-% Country = 'Italy';
+Country = 'Italy';
 % Country = 'US';
 
 % Country = 'Belgium';
@@ -80,8 +80,8 @@ Country = 'Argentina';
 source = 'HOPKINS';
 % source = 'MINSAL';
 % 
-source_input = 'online' ;
-% source_input = 'offline' ;
+% source_input = 'online' ;
+source_input = 'offline' ;
 
 [tableConfirmed,tableDeaths,tableRecovered,time_jh] = get_covid_global_hopkins ( source_input, './hopkins/' );
 
@@ -91,17 +91,19 @@ source_input = 'online' ;
 
 %% FITTIN INTERVAL
 
+PEAK     = 'ON'
+ 
 % MODEL_EVAL = 'ON';
 % FIT_UNTIL =  datetime(2020, 4, 3);
 % FIT_FROM  =  FIT_UNTIL - 16;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
 % Argentina
-FIT_UNTIL =  datetime(2020, 4, 21);
-FIT_FROM  =  FIT_UNTIL - 19;
+FIT_UNTIL =  datetime(2020, 4, 23);
+FIT_FROM  =  FIT_UNTIL - 34;
 % % FIT_FROM  =  datetime(2020, 3, 1);
 
-FORECAST_DAYS = 15; % DAYS TO FORECAST
+FORECAST_DAYS = 60; % DAYS TO FORECAST
 
 if (~exist('MODEL_EVAL','var')),  MODEL_EVAL  = 'OFF'; end
 
@@ -195,14 +197,13 @@ guess.lambda = [0.1, 0.05]; % recovery rate
 guess.kappa  = [0.1, 0.05]; % death rate
 
 tidx = datefind( FIT_FROM,  time);
-tfdx = datefind( FIT_UNTIL, time);sub_title_srt = '\fontsize{20}\color{gray}\rmFuente: Johns Hopkins CSSE.';
+tfdx = datefind( FIT_UNTIL, time);
 
 tfit = time >= FIT_FROM;
 tfit = time <= FIT_UNTIL & tfit;
 
-C0 = Confirmed(tfit);
-
 % Initial conditions
+C0 = Confirmed(tfit);
 E0 = C0(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = C0(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
@@ -234,8 +235,8 @@ D0 = D0(1);
 
 dt = 1/24; % time step, 1 hour
 
-time_sim = time(tfit);
-time_sim  = datetime( time_sim(1) ): dt : datetime( time_sim(end) + FORECAST_DAYS );
+time_adj = time(tfit);
+time_sim  = datetime( time_adj(1) ): dt : datetime( time_adj(end) + FORECAST_DAYS );
 
 N = numel(time_sim);
 t1 = (0:N-1).*dt;
@@ -275,7 +276,7 @@ if strcmp( ITERATIVE, 'OFF' )
         r_fore_str  = sprintf( '%d recoveries (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
         d_fore_str  = sprintf( '%d deaths (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
         double_q_str  = sprintf( 'Active cases are doubled in %d days', doubling_q );
-        double_d_str    = sprintf( 'Deaths are doubled in %d days', doubling_q );
+        double_d_str    = sprintf( 'Deaths are doubled in %d days', doubling_d );
     else
         model_str   = sprintf( 'GeSEIR proyecta para el %s:', datestr( time_sim(end), 'dd/mm/yy' ) );
         c_fore_str  = sprintf( '%d casos confirmados (%+d)', round( C1(end) ) , round( C1(end) - Confirmed(end) ) );
@@ -283,7 +284,7 @@ if strcmp( ITERATIVE, 'OFF' )
         r_fore_str  = sprintf( '%d recuperados (%+d)', round( R1(end) ) , round( R1(end) - Recovered(end) ) );
         d_fore_str  = sprintf( '%d fallecidos (%+d)', round( D1(end) ) , round( D1(end) - Deaths(end) ) );
         double_q_str    = sprintf( 'Casos activos se duplican cada %d días', doubling_q );
-        double_d_str    = sprintf( 'Fallecidos se duplican cada %d días', doubling_q );
+        double_d_str    = sprintf( 'Fallecidos se duplican cada %d días', doubling_d );
     end
     
     i_fore_str  = sprintf( '%d potential active cases', round( Q1(end) + I1(end) ) );
@@ -311,6 +312,7 @@ if strcmp( ITERATIVE, 'OFF' )
     fprintf( ' %s \n', lambda_str );
     fprintf( ' %s \n', kappa_str );
     fprintf( ' %s \n', double_q_str );
+    fprintf( ' %s \n', double_d_str );
     
 end
 
@@ -385,6 +387,11 @@ if strcmp( ITERATIVE, 'OFF' )
         qdx = find (Q1 == max(Q1));
         line([time_sim(qdx) time_sim(qdx)], [1 max(Q1)], 'color', red, 'linewidth', line_width, 'LineStyle', '--');
         semilogy(time_sim (qdx),max(Q1), 'color', red, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks+3);
+        
+        peak_str   = sprintf( 'Pico el %s con %s casos activos', datestr( time_sim(qdx), 'dd/mm' ), num2sip(round( Q1(qdx) ) , 3) ) ;
+        
+        fprintf(' %s \n', peak_str )
+        
     end
     
     %--------------------------------------------------------------------------
@@ -424,7 +431,7 @@ if strcmp( ITERATIVE, 'OFF' )
     
     xlim([ time(1) time_sim(end) ])
     
-    ylim([ 1 max(Q1)*2  ]) % max(Active)*3
+    ylim([ 1 max(Q1)*3  ]) % max(Active)*3
     
     set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):4:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
     %--------------------------------------------------------------------------
@@ -481,8 +488,8 @@ if strcmp( ITERATIVE, 'OFF' )
     %--------------------------------------------------------------------------
     
     delay = 0;  %  -1/2
-    P = 5;
-    hght = 1.5;
+    P = 8;
+    hght = 1.75;
     
     if strcmp (MODEL_EVAL, 'OFF')
         
@@ -492,11 +499,11 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 1 : P : size(Recovered, 2)
-            text( time(i)+delay, Recovered(i)/hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
+            text( time(i)+delay, Recovered(i)*hght , sprintf('%s', num2sip(Recovered(i) , 3)), 'FontSize',  font_point, 'color', blue );
         end
         
         for i = 1 : P : size(Deaths, 2)
-            text( time(i)+delay, Deaths(i)*hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
+            text( time(i)+delay, Deaths(i)/hght , sprintf('%s',   num2sip(Deaths(i) , 3)), 'FontSize',  font_point, 'color', 'black' );
         end
         
         
@@ -505,17 +512,17 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         for i = 2 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, r_fore_pt(i)/hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
+            text(time_fore_pt(i)+delay, r_fore_pt(i)*hght , sprintf('%s', num2sip(round( r_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', blue);
         end
         
         for i = 2 : P : size(time_fore_pt, 2)
-            text(time_fore_pt(i)+delay, d_fore_pt(i)*hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+            text(time_fore_pt(i)+delay, d_fore_pt(i)/hght , sprintf('%s', num2sip(round( d_fore_pt(i)) , 3)), 'FontSize',  font_point, 'Color', 'black');
         end
         
         % Print last vector element
-        text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
-        text( time_fore_pt(end)+delay, r_fore_pt(end)/hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
-        text( time_fore_pt(end)+delay, d_fore_pt(end)*hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
+%         text( time_fore_pt(end)+delay, q_fore_pt(end)*hght , sprintf('%s', num2sip(round( q_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', red_dark);
+%         text( time_fore_pt(end)+delay, r_fore_pt(end)*hght , sprintf('%s', num2sip(round( r_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', blue);
+%         text( time_fore_pt(end)+delay, d_fore_pt(end)/hght , sprintf('%s', num2sip(round( d_fore_pt(end)) , 3)), 'FontSize',  font_point, 'Color', 'black');
     else
         %--------------------------------------------------------------------------
         % Points with errors percent labels
@@ -582,8 +589,17 @@ if strcmp( ITERATIVE, 'OFF' )
     % TEXT BOX
     %--------------------------------------------------------------------------
     
-    text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
-        q_fore_str, r_fore_str, d_fore_str, double_q_str, double_d_str);
+    if strcmp (PEAK, 'OFF')
+        
+        text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
+            q_fore_str, r_fore_str, d_fore_str, double_q_str, double_d_str);
+        
+    else
+        
+        text_box = sprintf('%s\n * %s.\n * %s.\n * %s.\n * %s.', model_str, ...
+            q_fore_str, r_fore_str, d_fore_str, peak_str);
+        
+    end
     
     al = annotation('textbox', [0.40, 0.26, 0.1, 0.1], 'string', text_box, ...
         'LineStyle','-',...
