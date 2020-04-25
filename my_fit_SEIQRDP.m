@@ -1,4 +1,4 @@
-function param = my_fit_SEIQRDP(Confirmed, Recovered, Deaths, Npop, E0, I0, time, guess, varargin)
+function param = my_fit_SEIQRDP(Confirmed, Recovered, Deaths, Npop, E0, I0, time, varargin)
 % [param,varargout] = 
 % my_fit_SEIQRDP(Q,R,D,Npop,E0,I0,time,guess,varargin) estimates the 
 % parameters used in the SEIQRDP function, used to model the time-evolution
@@ -43,6 +43,16 @@ function param = my_fit_SEIQRDP(Confirmed, Recovered, Deaths, Npop, E0, I0, time
 %       - residual
 %       - Jcobian
 %       - The function @SEIQRDP_for_fitting
+
+guess.LT = 5; % gamma^(-1), incubation period.
+guess.QT = 5; % delta^(-1), infectious period.
+
+% Definition of the first estimates for the parameters
+guess.alpha = 1.0; % protection rate
+guess.beta  = 1.0; % Infection rate
+
+guess.lambda = [0.1, 0.05]; % recovery rate
+guess.kappa  = [0.1, 0.05]; % death rate
 
 guess_v = [guess.alpha,  guess.beta, 1/guess.LT, 1/guess.QT, guess.lambda,...
     guess.kappa];

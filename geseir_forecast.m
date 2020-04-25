@@ -54,7 +54,7 @@ addpath ./num2sip/
 
 Province = '';
 % Province = 'CABA';
-% Country = 'Argentina';
+Country = 'Argentina';
 % Country = 'Ecuador';
 % Country = 'Brazil';
 % Country = 'Chile';
@@ -62,7 +62,7 @@ Province = '';
 
 % Country = 'United Kingdom';
 % Country = 'Spain';
-Country = 'Italy';
+% Country = 'Italy';
 % Country = 'US';
 
 % Country = 'Belgium';
@@ -75,59 +75,62 @@ Country = 'Italy';
 % Country = 'China';
 % Province = 'Hubei';
 
-%% GET DATA
+%% SIMULATION CONFIG
 
-source = 'HOPKINS';
-% source = 'MINSAL';
-% 
-% source_input = 'online' ;
-source_input = 'offline' ;
+% Argentina
+FIT_UNTIL =  datetime(2020, 4, 24);
+FIT_FROM  =  FIT_UNTIL - 29;
+% % FIT_FROM  =  datetime(2020, 3, 1);
 
-[tableConfirmed,tableDeaths,tableRecovered,time_jh] = get_covid_global_hopkins ( source_input, './hopkins/' );
+FORECAST_DAYS = 15; % DAYS TO FORECAST
 
-[tableConfirmed_ar,tableDeaths_ar,tableRecovered_ar,time_ar] = get_covid_argentina( source_input, './csv/' );
+% PEAK     = 'ON'
 
-% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
-
-%% FITTIN INTERVAL
-
-PEAK     = 'ON'
- 
 % MODEL_EVAL = 'ON';
 % FIT_UNTIL =  datetime(2020, 4, 3);
 % FIT_FROM  =  FIT_UNTIL - 16;
 % FIT_FROM  =  datetime(2020, 3, 1);
 
-% Argentina
-FIT_UNTIL =  datetime(2020, 4, 23);
-FIT_FROM  =  FIT_UNTIL - 34;
-% % FIT_FROM  =  datetime(2020, 3, 1);
-
-FORECAST_DAYS = 60; % DAYS TO FORECAST
+% source = 'HOPKINS';
+source = 'MINSAL';
+% 
+% source_input = 'online' ;
+source_input = 'offline' ;
 
 if (~exist('MODEL_EVAL','var')),  MODEL_EVAL  = 'OFF'; end
 
-%% FIND COUNTRY
 
-[indC, indR, indD, Npop] = find_country (tableConfirmed,tableRecovered,tableDeaths, Country, Province);
+%% GET DATA JH
 
-Confirmed_jh = table2array(tableConfirmed(indC, 4:end));
-Deaths_jh    = table2array(tableDeaths(indD, 4:end));
+[tableConfirmed_jh,tableDeaths_jh,tableRecovered_jh,time_jh] = get_covid_global_hopkins ( source_input, './hopkins/' );
 
-if ~isempty(tableRecovered)
-    Recovered_jh = table2array(tableRecovered(indR, 4:end));
+% [tableConfirmed,tableDeaths,tableRecovered,time] = get_covid_us_hopkins ( source, './hopkins/' );
+
+% FIND COUNTRY
+[indC, indR, indD, Npop] = find_country (tableConfirmed_jh,tableRecovered_jh,tableDeaths_jh, Country, Province);
+
+Confirmed_jh = table2array(tableConfirmed_jh(indC, 4:end));
+Deaths_jh    = table2array(tableDeaths_jh(indD, 4:end));
+
+if ~isempty(tableRecovered_jh)
+    Recovered_jh = table2array(tableRecovered_jh(indR, 4:end));
 end
+
+%% GET DATA MINSAL
 
 if strcmp(Country, 'Argentina')
     
+    [tableConfirmed_ar,tableDeaths_ar,tableRecovered_ar,time_ar] = get_covid_argentina( source_input, './csv/', Recovered_jh );
+
+    % FIND COUNTRY
     [indC_ar, indR_ar, indD_ar, Npop_ar] = find_country (tableConfirmed_ar,tableRecovered_ar,tableDeaths_ar, Country, Province);
     
-    compare_hopkins_minsal(tableConfirmed,tableRecovered,tableDeaths, time_jh, tableConfirmed_ar,tableRecovered_ar,tableDeaths_ar, time_ar)
+    compare_hopkins_minsal(tableConfirmed_jh,tableRecovered_jh,tableDeaths_jh, time_jh, tableConfirmed_ar,tableRecovered_ar,tableDeaths_ar, time_ar)
     
     Confirmed_ar = table2array(tableConfirmed_ar(indC_ar, 4:end));
     Deaths_ar    = table2array(tableDeaths_ar(indD_ar, 4:end));
     
-    if ~isempty(tableRecovered)
+    if ~isempty(tableRecovered_jh)
         Recovered_ar = table2array(tableRecovered_ar(indR_ar, 4:end));
     end
     
@@ -151,7 +154,7 @@ end
 
 minNum = 50;
 time_jh(Confirmed_jh <= minNum)= [];
-if ~isempty(tableRecovered)
+if ~isempty(tableRecovered_jh)
     Recovered_jh(Confirmed_jh <= minNum)=[];
 end
 Deaths_jh(Confirmed_jh <= minNum)=[];
@@ -183,19 +186,6 @@ end
 
 %% FITTING
 
-if strcmp( ITERATIVE, 'OFF' )
-    
-    guess.LT = 5; % gamma^(-1), incubation period.
-    guess.QT = 5; % delta^(-1), infectious period.
-end
-
-% Definition of the first estimates for the parameters
-guess.alpha = 1.0; % protection rate
-guess.beta  = 1.0; % Infection rate
-
-guess.lambda = [0.1, 0.05]; % recovery rate
-guess.kappa  = [0.1, 0.05]; % death rate
-
 tidx = datefind( FIT_FROM,  time);
 tfdx = datefind( FIT_UNTIL, time);
 
@@ -207,16 +197,9 @@ C0 = Confirmed(tfit);
 E0 = C0(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = C0(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
-if ~isempty(tableRecovered)
+param_fit = my_fit_SEIQRDP(Confirmed(tfit), Recovered(tfit), Deaths(tfit), Npop, E0, I0, time(tfit));
     
-    param_fit = my_fit_SEIQRDP(Confirmed(tfit), Recovered(tfit), Deaths(tfit), Npop, E0, I0, time(tfit), guess);
-    
-    Active = Confirmed - Recovered - Deaths;
-else
-    param_fit = my_fit_SEIQRDP(Confirmed(tfit), [], Deaths(tfit), Npop, E0, I0, time(tfit), guess);
-    
-    Active = Confirmed - Recovered - Deaths;
-end
+Active = Confirmed - Recovered - Deaths;
 
 FIT_DAYS = length(time(tfit));
 
@@ -229,7 +212,6 @@ Q0 = C0(1) ;
 
 R0 = Recovered(tfit);
 D0 = Deaths(tfit);
-
 R0 = R0(1);
 D0 = D0(1);
 
@@ -238,10 +220,7 @@ dt = 1/24; % time step, 1 hour
 time_adj = time(tfit);
 time_sim  = datetime( time_adj(1) ): dt : datetime( time_adj(end) + FORECAST_DAYS );
 
-N = numel(time_sim);
-t1 = (0:N-1).*dt;
-
-[S1,E1,I1,Q1,R1,D1,P1] = my_SEIQRDP(param_fit, Npop, E0, I0, Q0, R0, D0, t1);
+[S1,E1,I1,Q1,R1,D1,P1] = my_SEIQRDP(param_fit, Npop, E0, I0, Q0, R0, D0, time_sim, dt);
 
 C1 = Q1 + R1 + D1 ;
 
@@ -426,7 +405,7 @@ if strcmp( ITERATIVE, 'OFF' )
     end
     
     set(gcf,'color','w')
-    %     set(gca,'yscale','lin')
+%     set(gca,'yscale','lin')
     set(gca,'yscale','log')
     
     xlim([ time(1) time_sim(end) ])

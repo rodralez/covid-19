@@ -1,4 +1,4 @@
-function [tableConfirmed_AR,tableDeaths_AR,tableRecovered_AR,time_AR] = get_covid_argentina( source, directory )
+function [tableConfirmed_AR,tableDeaths_AR,tableRecovered_AR,time_AR] = get_covid_argentina( source, directory , Recovered_jh)
 % get_covid_argentina() gets Argentina data from the COVID-19 epidemy from [1].
 % Based on E. Cheynet's work [2].
 %
@@ -107,18 +107,25 @@ if ( strcmp (source, 'online'))
         tableDeaths_AR.Properties.VariableNames(3+ddx) = { time_s };
     end
     
-    % Recovery table is made by hand.
+    % Recovery table
+    
+    % Recovered series starts on 14/03/2020, filled by hand
+    recovered_ar = [zeros(1,12), 1, 1, 1, 3, 3, 3, 3, 3, 27, 51, 52, 52, 72, 72, 72, ...
+        91, 228, 240, 248, 256, 266, 279, 280, 325, 338, 358, 365, 375, 440, ... 
+        468, 515, 559, 596, 631, 666, 685, 709, 737. 840 ]; % , 872, 919, 976
+    
     tableRecovered_AR = table('Size', [1 DAYS+3], 'VariableTypes', vartype_c );
     tableRecovered_AR.Properties.VariableNames(1:3) = {'ProvinceState','CountryRegion','Population'};
     tableRecovered_AR.CountryRegion = {'Argentina'};
     tableRecovered_AR.ProvinceState = {''};
     tableRecovered_AR.Population = tableDeaths_AR.Population(25);
     
-    % Recovered series starts on 14/03/2020, made by hand
-    recov = [zeros(1,12), 1, 1, 1, 3, 3, 3, 3, 3, 27, 51, 52, 52, 72, 72, 72, ...
-        91, 228, 240, 248, 256, 266, 279, 280, 325, 338, 358, 365, 375, 440, 468, 515, 559, 596, 631, 666, 685, 709, 737. 840 ]; % 
-    fill_z = zeros (1, size(tableRecovered_AR(1,4:end), 2) - size(recov, 2) ) ;
-    tableRecovered_AR(1,4:end) = num2cell( [recov,  fill_z ] );
+    diff = size(tableRecovered_AR(1,4:end), 2) - size(recovered_ar, 2);
+    idx = find (Recovered_jh == recovered_ar(end));
+    jdx = diff + idx;
+    fill_r = Recovered_jh(idx+1:jdx) ;
+%     fill_z = zeros (1, size(tableRecovered_AR(1,4:end), 2) - size(recovered_ar, 2) ) ;
+    tableRecovered_AR(1,4:end) = num2cell( [recovered_ar,  fill_r ] );
             
     % Daytime cells
     for ddx = 1:DAYS
@@ -154,9 +161,9 @@ if ( strcmp (source, 'online'))
         % Do not select Indeterminado
         ldx = ldx & hdx;
         
-        provinces = tableData.ProvinceState(ldx);
-        new_actives =  tableData.NewActives(ldx);
-        new_deaths =  tableData.NewDeaths(ldx);
+        provinces   = tableData.ProvinceState(ldx);
+        new_actives = tableData.NewActives(ldx);
+        new_deaths  = tableData.NewDeaths(ldx);
         
         for pdx = 1:size(provinces, 1)
             

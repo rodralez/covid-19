@@ -1,4 +1,4 @@
-function [S,E,I,Q,R,D,P] = my_SEIQRDP(param,Npop,E0,I0,Q0,R0,D0,t)
+function [S,E,I,Q,R,D,P] = my_SEIQRDP(param,Npop,E0,I0,Q0,R0,D0, time_sim, dt)
 % [S,E,I,Q,R,D,P] = SEIQRDP(param,Npop,E0,I0,R0,D0,t)
 % simulate the time-histories of an epidemic outbreak using a generalized
 % SEIR model.
@@ -40,6 +40,9 @@ function [S,E,I,Q,R,D,P] = my_SEIQRDP(param,Npop,E0,I0,Q0,R0,D0,t)
 %   P: vector [1xN] of the target time-histories of the insusceptible cases
 
 %%
+
+N = numel(time_sim);
+t = (0:N-1).*dt;
 
 alpha = param.alpha;
 beta = param.beta;
