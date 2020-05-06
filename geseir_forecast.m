@@ -83,7 +83,7 @@ Country = 'Chile';
 if strcmp( ITERATIVE, 'OFF' )
     
     FIT_UNTIL =  datetime(2020, 5, 5);
-    FIT_FROM  =  FIT_UNTIL - 23;
+    FIT_FROM  =  FIT_UNTIL - 14;
     % % FIT_FROM  =  datetime(2020, 3, 1);
     
     FORECAST_DAYS = 15; % DAYS TO FORECAST
@@ -95,7 +95,7 @@ if strcmp( ITERATIVE, 'OFF' )
 %     FIT_FROM  =  datetime(2020, X, X);
 %     FIT_UNTIL =  FIT_FROM + 14;
 %     FIT_UNTIL =  datetime(2020, 5, 2);
-%     FIT_FROM  =  FIT_UNTIL - 14;
+%     FIT_FROM  =  FIT_UNTIL - 24;
     
 %     FORECAST_DAYS = days (datetime(2020, 5, 1) - FIT_UNTIL );
     
