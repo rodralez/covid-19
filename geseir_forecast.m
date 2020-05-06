@@ -57,43 +57,52 @@ Province = '';
 % Country = 'Argentina';
 % Country = 'Ecuador';
 % Country = 'Brazil';
-% Country = 'Chile';
+Country = 'Chile';
 % Country = 'Uruguay';
 
 % Country = 'United Kingdom';
 % Country = 'Spain';
 % Country = 'Italy';
 % Country = 'US';
+% Country = 'Sweden';
+% Country = 'Norway';
+% Country = 'France';
 
 % Country = 'Belgium';
 % Country = 'Germany';
 % Country = 'Turkey';
-% Country = 'France';
+
 
 % Country = 'Singapore';
-Country = 'Korea, South';
+% Country = 'Korea, South';
 % Country = 'China';
 % Province = 'Hubei';
 
 %% SIMULATION CONFIG
 
-% Argentina
-FIT_UNTIL =  datetime(2020, 4, 30);
-FIT_FROM  =  FIT_UNTIL - 15;
-% % FIT_FROM  =  datetime(2020, 3, 1);
+if strcmp( ITERATIVE, 'OFF' )
+    
+    FIT_UNTIL =  datetime(2020, 5, 5);
+    FIT_FROM  =  FIT_UNTIL - 23;
+    % % FIT_FROM  =  datetime(2020, 3, 1);
+    
+    FORECAST_DAYS = 15; % DAYS TO FORECAST
+    
+%     FORECAST_DAYS = 90; % DAYS TO FORECAST
+%     PEAK     = 'ON'
+    
+%     MODEL_EVAL = 'ON';
+%     FIT_FROM  =  datetime(2020, X, X);
+%     FIT_UNTIL =  FIT_FROM + 14;
+%     FIT_UNTIL =  datetime(2020, 5, 2);
+%     FIT_FROM  =  FIT_UNTIL - 14;
+    
+%     FORECAST_DAYS = days (datetime(2020, 5, 1) - FIT_UNTIL );
+    
+end
 
-FORECAST_DAYS = 15; % DAYS TO FORECAST
-
-FORECAST_DAYS = 60; % DAYS TO FORECAST
-% PEAK     = 'ON'
-
-ENGLISH  = 'ON'
-
-% MODEL_EVAL = 'ON';
-% FIT_UNTIL =  datetime(2020, 4, 13);
-% FIT_FROM  =  FIT_UNTIL - 14;
-% FIT_FROM  =  datetime(2020, 3, 1);
-
+% ENGLISH  = 'ON'
+    
 source = 'HOPKINS';
 % source = 'MINSAL';
 
@@ -101,7 +110,6 @@ source = 'HOPKINS';
 source_input = 'offline' ;
 
 if (~exist('MODEL_EVAL','var')),  MODEL_EVAL  = 'OFF'; end
-
 
 %% GET DATA JH
 
@@ -124,7 +132,7 @@ end
 if strcmp(Country, 'Argentina')
     
     [tableConfirmed_ar,tableDeaths_ar,tableRecovered_ar,time_ar] = get_covid_argentina( source_input, './csv/', Recovered_jh );
-
+    
     % FIND COUNTRY
     [indC_ar, indR_ar, indD_ar, Npop_ar] = find_country (tableConfirmed_ar,tableRecovered_ar,tableDeaths_ar, Country, Province);
     
@@ -145,7 +153,7 @@ if strcmp(Country, 'Argentina')
     end
     Deaths_ar(Confirmed_ar <= minNum)=[];
     Confirmed_ar(Confirmed_ar <= minNum)=[];
-
+    
 end
 
 % FIND FIRST 50 CASES
@@ -174,7 +182,7 @@ if strcmp(source, 'HOPKINS')
     time = time_jh;
     
     source_str   = sprintf( 'Johns Hopkins CSSE');
-
+    
 elseif strcmp(source, 'MINSAL')
     
     Confirmed = Confirmed_ar;
@@ -182,7 +190,7 @@ elseif strcmp(source, 'MINSAL')
     Deaths = Deaths_ar;
     time = time_ar;
     
-    source_str   = sprintf( 'Ministerio de Salud');    
+    source_str   = sprintf( 'Ministerio de Salud');
 else
     
     error('No data source selected!')
@@ -202,7 +210,7 @@ E0 = C0(1) ; % Initial number of exposed cases. Unknown but unlikely to be zero.
 I0 = C0(1) ; % Initial number of infectious cases. Unknown but unlikely to be zero.
 
 param_fit = my_fit_SEIQRDP(Confirmed(tfit), Recovered(tfit), Deaths(tfit), Npop, E0, I0, time(tfit));
-    
+
 Active = Confirmed - Recovered - Deaths;
 
 FIT_DAYS = length(time(tfit));
@@ -322,10 +330,10 @@ red = [1 0 0];
 % FONT SIZE, LINE WIDTH, POINT WIDTH
 %--------------------------------------------------------------------------
 
-font_title = 25;
-font_label = 23;
+font_title = 23;
+font_label = 20;
 font_tick  = 17;
-font_legend = 16;
+font_legend = 15;
 font_point = 13;
 
 line_width = 2.5;
@@ -385,16 +393,16 @@ if strcmp( ITERATIVE, 'OFF' )
         end
         
         line([peak_time peak_time], [1 peak_max], 'color', red, 'linewidth', line_width, 'LineStyle', '--');
-        semilogy(peak_time, peak_max, 'color', red, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks+3);        
+        semilogy(peak_time, peak_max, 'color', red, 'Marker','d', 'LineStyle', 'none', 'LineWidth', line_width_pt,'MarkerSize', mks+3);
         
         if strcmp (ENGLISH, 'OFF')
             
-            peak_str   = sprintf( 'Pico el %s con %s casos activos', datestr( peak_time, 'dd/mm' ), num2sip(round( peak_max ) , 3) ) ;        
-        else            
+            peak_str   = sprintf( 'Pico el %s con %s casos activos', datestr( peak_time, 'dd/mm' ), num2sip(round( peak_max ) , 3) ) ;
+        else
             peak_str   = sprintf( 'Peak with %s active cases on %s', num2sip(round( peak_max ) , 3), datestr( peak_time, 'mmmm dd' )  ) ;
         end
         
-        fprintf(' %s \n', peak_str )        
+        fprintf(' %s \n', peak_str )
     end
     
     %--------------------------------------------------------------------------
@@ -429,15 +437,15 @@ if strcmp( ITERATIVE, 'OFF' )
     end
     
     set(gcf,'color','w')
-%     set(gca,'yscale','lin')
+    %     set(gca,'yscale','lin')
     set(gca,'yscale','log')
     
     xlim([ time(1) time_sim(end) ])
     
     if max(R1) > max(Q1)
-        ylim([ 1 max(R1)*3  ]); 
+        ylim([ 1 max(R1)*3  ]);
     else
-        ylim([ 1 max(Q1)*3  ]); 
+        ylim([ 1 max(Q1)*3  ]);
     end
     
     set(gca, 'XTickMode', 'manual', 'YTickMode', 'auto', 'XTick', time(1):4:time_sim(end), 'FontSize', font_tick, 'XTickLabelRotation', 45);
@@ -445,7 +453,7 @@ if strcmp( ITERATIVE, 'OFF' )
     
     %--------------------------------------------------------------------------
     % TITLE
-    %--------------------------------------------------------------------------    
+    %--------------------------------------------------------------------------
     
     if (strcmp(Province, ''))
         country_str = Country;
@@ -472,10 +480,10 @@ if strcmp( ITERATIVE, 'OFF' )
         title_srt = sprintf('%s, %s.\nFitted with %d days, forecasted %d days from %s.', ...
             country_str, title_type, FIT_DAYS, FORECAST_DAYS, date_str );
     else
-    
+        
         date_str = datestr(time(tfdx), 'dd/mm/yy');
         
-        switch (country_str)           
+        switch (country_str)
             case 'Spain', country_str = 'España';
             case 'Italy', country_str = 'Italia';
             case 'US', country_str = 'EE.UU.';
@@ -485,11 +493,11 @@ if strcmp( ITERATIVE, 'OFF' )
         if strcmp (MODEL_EVAL, 'OFF')
             title_type = 'Modelo GeSEIR para la predicción de COVID-19';
         else
-            title_type = 'Modelo GeSEIR para la evaluación de COVID-19';
+            title_type = 'Evaluación del modelo GeSEIR para la predicción de COVID-19';
         end
         
         sub_title_srt     = ['\fontsize{20}\color{gray}\rm Fuente: ', source_str, '.'];
-                
+        
         title_srt = sprintf('%s, %s.\nAjuste con %d días, proyección de %d días desde %s.', ...
             country_str, title_type, FIT_DAYS, FORECAST_DAYS, date_str );
     end
@@ -506,7 +514,7 @@ if strcmp( ITERATIVE, 'OFF' )
     else
         P = 7;
     end
-        
+    
     hght = 1.75;
     delay = 0;  %  -1/2
     
@@ -622,23 +630,23 @@ if strcmp( ITERATIVE, 'OFF' )
         
     end
     
-    al = annotation('textbox', [0.42, 0.25, 0.1, 0.1], 'string', text_box, ...
+    al = annotation('textbox', [0.42, 0.26, 0.1, 0.1], 'string', text_box, ...
         'LineStyle','-',...
         'FontSize', font_legend,...
         'FontName','Arial', ...
         'FaceAlpha', 0.5, ...
         'BackgroundColor', 'white');
     %     'FontWeight','bold',...
-
+    
     %--------------------------------------------------------------------------
-    % FIRM
-    %-------------------------------------------------------------------------- 
+    % SIGNATURE
+    %--------------------------------------------------------------------------
     
     % Create textbox
-    annotation('textbox', [0.14 0.8 0.3 0.04],...
-    'Color', ones(1,3) * 0.50 ,...
-    'String',{'Rodrigo Gonzalez (Twitter @RGonzalez\_PhD)'},...
-            'LineStyle','none',...
+    annotation('textbox', [0.14 0.79 0.35 0.05],...
+        'Color', ones(1,3) * 0.50 ,...
+        'String',{'Rodrigo Gonzalez (Twitter @RGonzalez\_PhD)'},...
+        'LineStyle','none',...
         'FontSize', font_legend ,...
         'FontName','Arial', ...
         'FaceAlpha', 0.5, ...
@@ -647,19 +655,19 @@ if strcmp( ITERATIVE, 'OFF' )
     
     %--------------------------------------------------------------------------
     % WATERMARK
-    %-------------------------------------------------------------------------- 
+    %--------------------------------------------------------------------------
     
     for i=1:3
         x = 0.14 + i*0.15;
-        y = 0.78 - i*0.14;
-        annotation('textbox', [x y 0.3 0.05],...
-    'Color', ones(1,3) * 0.875 , ...
-    'String',{'Rodrigo Gonzalez (Twitter @RGonzalez\_PhD)'},...
+        y = 0.79 - i*0.145;
+        annotation('textbox', [x y 0.35 0.05],...
+            'Color', ones(1,3) * 0.875 , ...
+            'String',{'Rodrigo Gonzalez (Twitter @RGonzalez\_PhD)'},...
             'LineStyle','none',...
-        'FontSize', font_legend ,...
-        'FontName','Arial', ...
-        'FaceAlpha', 0.05, ...
-        'BackgroundColor', 'white');
+            'FontSize', font_legend ,...
+            'FontName','Arial', ...
+            'FaceAlpha', 0.05, ...
+            'BackgroundColor', 'white');
     end
     
     %--------------------------------------------------------------------------
@@ -674,14 +682,16 @@ if strcmp( ITERATIVE, 'OFF' )
     
     
     %% SAVE FIGURE TO PNG FILE
-        
+    
     Country = regexprep(Country, ' ', '_');
+    date_str = datestr( FIT_UNTIL , 'yyyy-mm-dd');
+    
     
     if strcmp (MODEL_EVAL, 'OFF')
         
-        file_name = sprintf('%s_covid-19_fit_forecast_%s', Country, datestr( FIT_UNTIL ) );
+        file_name = sprintf('%s_covid-19_forecast_%s', Country, date_str );
     else
-        file_name = sprintf('%s_covid-19_eval_%s', Country, datestr( FIT_UNTIL ) );
+        file_name = sprintf('%s_covid-19_eval_%s', Country, date_str );
     end
     
     if strcmp (PEAK, 'ON')
@@ -700,17 +710,17 @@ if strcmp( ITERATIVE, 'OFF' )
     
     %% PLOT INFECTED AND EXPOSED
     
-%     figure
-%     
-%     q1 = semilogy(time_sim (fidx), I1 (fidx), 'color', red_dark, 'LineWidth', line_width);
-%     hold on
-%     r1 = semilogy(time_sim (fidx), E1 (fidx), 'color', blue, 'LineWidth', line_width);
-%     
-%     grid on
-%     
-%     legend('INFECTED', 'EXPOSED')
-%     
-%     hold off
+    %     figure
+    %
+    %     q1 = semilogy(time_sim (fidx), I1 (fidx), 'color', red_dark, 'LineWidth', line_width);
+    %     hold on
+    %     r1 = semilogy(time_sim (fidx), E1 (fidx), 'color', blue, 'LineWidth', line_width);
+    %
+    %     grid on
+    %
+    %     legend('INFECTED', 'EXPOSED')
+    %
+    %     hold off
     
     %% SAVE DATA TO CSV FILE
     
@@ -750,7 +760,7 @@ if strcmp( ITERATIVE, 'OFF' )
     
     if strcmp (MODEL_EVAL, 'OFF')
         
-        cp_command = sprintf('cp %s ./csv/%s_covid-19_fit_forecast_lastest.csv', file_str, Country );
+        cp_command = sprintf('cp %s ./csv/%s_covid-19_forecast_lastest.csv', file_str, Country );
         ret = system(cp_command);
         if ret ~= 0
             error('cp error!');
@@ -764,9 +774,9 @@ if strcmp( ITERATIVE, 'OFF' )
     
     if strcmp (MODEL_EVAL, 'OFF')
         
-        file_name = sprintf('%s_covid-19_reported_%s', Country, datestr( FIT_UNTIL ) );
+        file_name = sprintf('%s_covid-19_reported_%s', Country, date_str );
     else
-        file_name = sprintf('%s_covid-19_eval_reported_%s', Country, datestr( FIT_UNTIL ) );
+        file_name = sprintf('%s_covid-19_reported_eval_%s', Country, date_str );
     end
     
     file_str = sprintf('./csv/%s.csv', file_name);
@@ -788,7 +798,7 @@ if strcmp( ITERATIVE, 'OFF' )
     %--------------------------------------------------------------------------
     
     if strcmp (MODEL_EVAL, 'OFF')
-        cp_command = sprintf('cp %s ./csv/%s_covid-19_reported_lastest.csv', file_str, regexprep(Country, ' ', '_') );
+        cp_command = sprintf('cp %s ./csv/%s_covid-19_reported_lastest.csv', file_str, Country );
         ret = system(cp_command);
         if ret ~= 0
             error('cp error!');

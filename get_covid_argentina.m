@@ -121,7 +121,7 @@ if ( strcmp (source, 'online'))
     tableRecovered_AR.Population = tableDeaths_AR.Population(25);
     
     diff = size(tableRecovered_AR(1,4:end), 2) - size(recovered_ar, 2);
-    idx = find (Recovered_jh == recovered_ar(end));
+    idx = find (Recovered_jh == recovered_ar(end)) -1 ;
     jdx = diff + idx;
     fill_r = Recovered_jh(idx+1:jdx) ;
 %     fill_z = zeros (1, size(tableRecovered_AR(1,4:end), 2) - size(recovered_ar, 2) ) ;
